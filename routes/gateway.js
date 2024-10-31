@@ -5,8 +5,9 @@ const router = express.Router();
 
 // Rota para criar um novo cliente
 router.post('/novo-gateway/:userId', async (req, res) => {
-  const { userId } = req.params;
   try {
+    const { userId } = req.params;
+  
     const { gateway_name,
       document_gateway,
       business_opening_date,
@@ -18,7 +19,7 @@ router.post('/novo-gateway/:userId', async (req, res) => {
       city, 
       state, 
       district, 
-      contry, 
+      country, 
       ownew, 
       document_responsable, 
       phone_responsable, 
@@ -38,7 +39,7 @@ router.post('/novo-gateway/:userId', async (req, res) => {
       city, 
       state, 
       district, 
-      contry, 
+      country, 
       ownew, 
       document_responsable, 
       phone_responsable, 
@@ -47,7 +48,9 @@ router.post('/novo-gateway/:userId', async (req, res) => {
       token_id: token_id,
       status: 0,
       ds_status: 'Aguardando.' });
-    res.status(201).json(gateway);
+    res.status(201).json({token_id: gateway.token_id,
+                          user_id: gateway.user_id,
+                          gateway_id: gateway.id});
   } catch (err) {
     if (err.parent.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ message: 'CNPJ já adicionado.' });

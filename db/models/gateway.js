@@ -52,7 +52,7 @@ const Gateway = sequelize.define('gateway', {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  contry: {
+  country: {
     type: DataTypes.STRING,
     allowNull: true,
   },
@@ -62,7 +62,7 @@ const Gateway = sequelize.define('gateway', {
   },
   document_responsable: {
     type: DataTypes.STRING,
-    allowNull: true,
+    allowNull: true,    
   },
   phone_responsable: {
     type: DataTypes.STRING,
@@ -75,6 +75,7 @@ const Gateway = sequelize.define('gateway', {
   user_id: {
     type: DataTypes.INTEGER,
     allowNull: true,
+    unique: true,
   },
   token_id: {
     type: DataTypes.STRING,

@@ -19,11 +19,12 @@ router.post('/novo-user', async (req, res) => {
       phone,
       password
     });
-    res.status(201).json(user);
+    res.status(201).json({id: user.id});
     
   } catch (err) {
     if (err.parent.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ message: 'CPF ou EMAIL já adicionado.' });
+      console.log('retorno: ' + err.parent.code );
+      return res.status(409).json({ retorno: err.parent.code });
     }
     console.log(err)
     res.status(500).send(err);
