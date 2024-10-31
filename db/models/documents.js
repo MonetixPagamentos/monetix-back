@@ -14,7 +14,7 @@ const Documents = sequelize.define('documents', {
     documento_frente_status: { type: DataTypes.STRING, defaultValue: 'Aguardando Análise'  }, // Status do documento frente
     documento_verso_status: { type: DataTypes.STRING, defaultValue: 'Aguardando Análise'  }, // Status do documento verso
     selfie_status: { type: DataTypes.STRING, defaultValue: 'Aguardando Análise'  }, // Status da selfie
-    status: { type: DataTypes.STRING, defaultValue: "0" }, // Status geral
+    status: { type: DataTypes.INTEGER, defaultValue: 0 }, // Status geral
     motivo_status: { type: DataTypes.STRING, defaultValue: 'Aguardando Análise' }, // Descrição do status
 }, {
   timestamps: true, 
