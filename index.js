@@ -7,11 +7,13 @@ const documents = require('./routes/documents');
 const User = require('./db/models/user');
 const Gateway = require('./db/models/gateway');
 const Documents = require('./db/models/documents');
+const setupSwagger = require('./swagger'); 
 const cors = require('cors');
-
 const app = express();
+
 app.use(cors());
 const port = 3000;
+setupSwagger(app);
 
 app.use(express.json()); // Para analisar JSON
 
