@@ -1,6 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../connection');
-
+ 
 const TaxaGateway = sequelize.define('taxa_gateway', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     taxa_pix: { type: DataTypes.FLOAT, defaultValue: 2 }, // Taxa padrão para PIX

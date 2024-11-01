@@ -3,6 +3,8 @@ const { v4: uuidv4 } = require('uuid'); // Importando a função v4 do uuid
 const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
 const SaldoGateway = require('../db/models/saldoGateway');
 const TaxaGateway = require('../db/models/taxaGateway');
+const Token = require('../db/models/tokens');
+
 const router = express.Router();
 
 // Rota para criar um novo cliente
@@ -51,7 +53,14 @@ router.post('/novo-gateway/:userId', async (req, res) => {
       status: 0,
       ds_status: 'Aguardando.'
     });
+    
     if (gateway && gateway.id) {
+      
+      await Token.create({
+        token: token_id,
+        id_gateway: gateway.id        
+      });
+
       await SaldoGateway.create({
         val_disponivel: 0,
         val_reserva: 0,
