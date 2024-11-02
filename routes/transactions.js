@@ -6,10 +6,12 @@ const router = express.Router();
 //documentacao
 /**
  * @swagger
- * /create-transaction:
+ * /transactions/create-transaction:
  *   post:
  *     summary: Cria uma nova transação
  *     description: Este endpoint permite a criação de uma nova transação com os detalhes fornecidos. Requer um token de autorização Bearer.
+ *     tags:
+ *       - Transaction
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -56,6 +58,9 @@ const router = express.Router();
  *               postback_gateway:
  *                 type: string
  *                 description: URL de postback do gateway.
+ *               id_seller:
+ *                 type: integer
+ *                 description: Id do vendedor.  
  *     responses:
  *       201:
  *         description: Transação criada com sucesso.
@@ -106,32 +111,10 @@ const router = express.Router();
  *         description: Erro ao criar transação.
  */
 
-// Definição do esquema de segurança no Swagger
-/**
- * @swagger
- * components:
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
- */
-
 router.post('/create-transaction', async (req, res) => {
   try {
-    const {
-      amount,
-      cardNumber,
-      cvv,
-      description,
-      expirationDate,
-      idOriginTransaction,
-      nameCreditCard,
-      numbersInstallments,
-      typePayment,
-      payment_method,
-      id_gateway,
-      postback_gateway
+    const {      
+      id_seller
     } = req.body;
 
     // Extrai o token do cabeçalho de autorização
@@ -139,38 +122,67 @@ router.post('/create-transaction', async (req, res) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
     }
+
+    const tokenBearer = authHeader.split(' ')[1];
   
     // Busca o token ativo na tabela de Token
-    const tokenRecord = await Token.findOne({ where: { id_gateway: id_gateway, ativo: 1 } });
+    const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
 
     if (!tokenRecord) {
       return res.status(403).json({ message: "Autorização falhou!" });
     }
 
-    // Criação da transação se o token for válido
-    const transaction = await Transactions.create({
-      amount,
-      cardNumber,
-      cvv,
-      description,
-      expirationDate,
-      idOriginTransaction,
-      nameCreditCard,
-      numbersInstallments,
-      typePayment,
-      payment_method,
-      tokenRecord,
-      id_gateway,
-      postback_gateway
+    fetch('http://seu-endpoint.com/Transaction', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer SEU_TOKEN_AQUI' // Insira seu token de autorização aqui
+        },
+        body: req.body
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erro ao criar transação: ' + response.statusText);
+        }
+
+        const transaction = Transactions.create({
+          amount: response.amount,
+          cardNumber: response.cardNumber,
+          cvv: response.cvv,
+          description: response.description,
+          expirationDate: response.expirationDate,
+          idOriginTransaction: response.idOriginTransaction ,
+          nameCreditCard: response.nameCreditCard,
+          numbersInstallments: response.numbersInstallments,
+          typePayment: response.typePayment,
+          payment_method: response. payment_method,
+          token_gateway: tokenRecord.token,
+          id_gateway: tokenRecord.id_gateway,          
+          id_seller,
+          external_id,
+          authorizationCode,
+          creditCardId,
+          identificationTransaction,
+          identificationTransactionCanceled,
+          status
+        });
+    
+        res.status(201).json(transaction);
+        
+    })
+    .then(data => {
+        console.log('Transação criada com sucesso:', data);
+    })
+    .catch(error => {
+        console.error('Erro:', error);
     });
 
-    res.status(201).json(transaction);
+ 
   } catch (error) {
     console.error("Erro ao criar transação:", error);
     res.status(500).json({ error: "Erro ao criar transação." });
   }
 });
-
 
 //documentacao
 /**
@@ -179,6 +191,8 @@ router.post('/create-transaction', async (req, res) => {
  *   get:
  *     summary: Obtém transações por ID do gateway
  *     description: Este endpoint permite buscar transações associadas a um gateway específico, fornecendo o ID do gateway como parâmetro de consulta.
+ *     tags:
+ *       - Transaction
  *     parameters:
  *       - in: query
  *         name: id_gateway
@@ -271,6 +285,8 @@ router.get('/transactions-gateway', async (req, res) => {
  *   get:
  *     summary: Obtém todas as transações por ID de origem
  *     description: Este endpoint permite buscar todas as transações associadas a um ID de origem específico, fornecendo o ID como parâmetro de consulta.
+ *     tags:
+ *       - Transaction
  *     parameters:
  *       - in: query
  *         name: id_origin_transaction

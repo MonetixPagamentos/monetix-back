@@ -4,6 +4,8 @@ const gatewayRoutes = require('./routes/gateway');
 const userRoutes = require('./routes/user');
 const transactions = require('./routes/transactions');
 const documents = require('./routes/documents');
+const withdraw = require('./routes/whitdraw');
+const subContaSeller = require('./routes/subContaSeller');
 const User = require('./db/models/user');
 const Gateway = require('./db/models/gateway');
 const Documents = require('./db/models/documents');
@@ -24,10 +26,11 @@ initDb().then(() => {
   app.use('/user', userRoutes);
   app.use('/transactions', transactions);
   app.use('/documento', documents);
-
-
+  app.use('/withdraw', withdraw);
+  app.use('/seller', subContaSeller);
+  
   app.get('/', (req, res) => {
-    res.send('Hello World!');
+    res.send('API MONETIX :D');
   });
 
   app.post('/login', async (req, res) => {

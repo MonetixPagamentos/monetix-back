@@ -49,7 +49,7 @@ router.post('/novo-gateway/:userId', async (req, res) => {
       phone_responsable,
       email_responsable,
       user_id: userId,
-      token_id: token_id,
+      token_id,
       status: 0,
       ds_status: 'Aguardando.'
     });

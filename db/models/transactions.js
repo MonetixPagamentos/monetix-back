@@ -3,7 +3,7 @@ const sequelize = require('../connection');
 
 const Transactions = sequelize.define('transactions', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-
+    id_seller: { type: DataTypes.INTEGER, allowNull: false },
     amount: { type: DataTypes.DOUBLE, allowNull: false }, // Valor da transação
     cardNumber: { type: DataTypes.STRING, allowNull: false }, // Número de cartão
     cvv: { type: DataTypes.INTEGER, allowNull: false }, // Código de segurança
@@ -16,8 +16,9 @@ const Transactions = sequelize.define('transactions', {
     payment_method: { type: DataTypes.STRING, allowNull: false },
     token_gateway: { type: DataTypes.STRING, allowNull: false },
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },
-    postback_gateway: { type: DataTypes.STRING, allowNull: false },
+        
     // Campos de retorno
+    external_id: { type: DataTypes.STRING, allowNull: true }, // Código de autorização
     authorizationCode: { type: DataTypes.STRING, allowNull: true }, // Código de autorização
     creditCardId: { type: DataTypes.BIGINT, allowNull: true }, // Id da transação
     identificationTransaction: { type: DataTypes.STRING, allowNull: true }, // Identificador de transação
