@@ -1,6 +1,7 @@
 const express = require('express');
 const Transactions = require('../db/models/transactions');
 const Token = require('../db/models/tokens');
+require('dotenv').config();
 const router = express.Router();
 
 //documentacao
@@ -114,7 +115,8 @@ const router = express.Router();
 router.post('/create-transaction', async (req, res) => {
   try {
     const {      
-      id_seller
+      id_seller,
+      end_to_end
     } = req.body;
 
     // Extrai o token do cabeçalho de autorização
@@ -131,8 +133,8 @@ router.post('/create-transaction', async (req, res) => {
     if (!tokenRecord) {
       return res.status(403).json({ message: "Autorização falhou!" });
     }
-
-    fetch('http://seu-endpoint.com/Transaction', {
+    
+    fetch(process.env.URL_ROTA_ASTRAPAY_HOMOLOG, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -164,7 +166,8 @@ router.post('/create-transaction', async (req, res) => {
           creditCardId,
           identificationTransaction,
           identificationTransactionCanceled,
-          status
+          status,
+          end_to_end
         });
     
         res.status(201).json(transaction);

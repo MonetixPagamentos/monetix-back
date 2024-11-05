@@ -19,6 +19,7 @@ const Transactions = sequelize.define('transactions', {
         
     // Campos de retorno
     external_id: { type: DataTypes.STRING, allowNull: true }, // Código de autorização
+    end_to_end: { type: DataTypes.STRING, allowNull: true},
     authorizationCode: { type: DataTypes.STRING, allowNull: true }, // Código de autorização
     creditCardId: { type: DataTypes.BIGINT, allowNull: true }, // Id da transação
     identificationTransaction: { type: DataTypes.STRING, allowNull: true }, // Identificador de transação
