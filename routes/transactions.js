@@ -1,6 +1,7 @@
 const express = require('express');
 const Transactions = require('../db/models/transactions');
 const Token = require('../db/models/tokens');
+const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 const router = express.Router();
 
@@ -114,73 +115,60 @@ const router = express.Router();
 
 router.post('/create-transaction', async (req, res) => {
   try {
-    const {      
+    const {
       id_seller,
-      end_to_end
+      end_to_end,
+      homolog
     } = req.body;
 
-    // Extrai o token do cabeçalho de autorização
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+    // pra testar pelo soap
+    if (homolog != 1) {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+      }
+
+      const tokenBearer = authHeader.split(' ')[1];
+
+      // Busca o token ativo na tabela de Token
+      const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+
+      if (!tokenRecord) {
+        return res.status(403).json({ message: "Autorização falhou!" });
+      }
     }
 
-    const tokenBearer = authHeader.split(' ')[1];
-  
-    // Busca o token ativo na tabela de Token
-    const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
-
-    if (!tokenRecord) {
-      return res.status(403).json({ message: "Autorização falhou!" });
-    }
+    const data = await makeCreditPayment(await getTokenAstraPay(), uuidv4());
     
-    fetch(process.env.URL_ROTA_ASTRAPAY_HOMOLOG, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer SEU_TOKEN_AQUI' // Insira seu token de autorização aqui
-        },
-        body: req.body
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Erro ao criar transação: ' + response.statusText);
-        }
+    // depois que conseguir fazer comunicar com a astrapay gravar a transação no nosso banco
 
-        const transaction = Transactions.create({
-          amount: response.amount,
-          cardNumber: response.cardNumber,
-          cvv: response.cvv,
-          description: response.description,
-          expirationDate: response.expirationDate,
-          idOriginTransaction: response.idOriginTransaction ,
-          nameCreditCard: response.nameCreditCard,
-          numbersInstallments: response.numbersInstallments,
-          typePayment: response.typePayment,
-          payment_method: response. payment_method,
-          token_gateway: tokenRecord.token,
-          id_gateway: tokenRecord.id_gateway,          
-          id_seller,
-          external_id,
-          authorizationCode,
-          creditCardId,
-          identificationTransaction,
-          identificationTransactionCanceled,
-          status,
-          end_to_end
-        });
-    
-        res.status(201).json(transaction);
-        
-    })
-    .then(data => {
-        console.log('Transação criada com sucesso:', data);
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-    });
 
- 
+    // const transaction = Transactions.create({
+    //   amount: response.amount,
+    //   cardNumber: response.cardNumber,
+    //   cvv: response.cvv,
+    //   description: response.description,
+    //   expirationDate: response.expirationDate,
+    //   idOriginTransaction: response.idOriginTransaction,
+    //   nameCreditCard: response.nameCreditCard,
+    //   numbersInstallments: response.numbersInstallments,
+    //   typePayment: response.typePayment,
+    //   payment_method: response.payment_method,
+    //   token_gateway: tokenRecord.token,
+    //   id_gateway: tokenRecord.id_gateway,
+    //   id_seller,
+    //   external_id,
+    //   authorizationCode,
+    //   creditCardId,
+    //   identificationTransaction,
+    //   identificationTransactionCanceled,
+    //   status,
+    //   end_to_end
+    // });
+
+    // res.status(201).json(transaction);   
+
+
   } catch (error) {
     console.error("Erro ao criar transação:", error);
     res.status(500).json({ error: "Erro ao criar transação." });
@@ -265,19 +253,19 @@ router.post('/create-transaction', async (req, res) => {
 router.get('/transactions-gateway', async (req, res) => {
   const { id_gateway } = req.query;
   try {
-      if (!id_gateway) {
-          return res.status(400).json({ error: 'id_gateway é obrigatório' });
-      }
-      const transactions = await Transactions.findAll({where: {id_gateway: id_gateway}});
+    if (!id_gateway) {
+      return res.status(400).json({ error: 'id_gateway é obrigatório' });
+    }
+    const transactions = await Transactions.findAll({ where: { id_gateway: id_gateway } });
 
-      if (transactions.length === 0) {
-          return res.status(404).json({ message: 'Nenhuma transação encontrada' });
-      }
+    if (transactions.length === 0) {
+      return res.status(404).json({ message: 'Nenhuma transação encontrada' });
+    }
 
-      return res.status(200).json(transactions);
+    return res.status(200).json(transactions);
   } catch (error) {
-      console.error('Error fetching transactions:', error);
-      return res.status(500).json({ error: 'Erro ao buscar transações' });
+    console.error('Error fetching transactions:', error);
+    return res.status(500).json({ error: 'Erro ao buscar transações' });
   }
 });
 
@@ -360,25 +348,77 @@ router.get('/transactions-gateway', async (req, res) => {
 router.get('/transactions-id', async (req, res) => {
   const { id_origin_transaction } = req.query;
   try {
-      if (!id_origin_transaction) {
-          return res.status(400).json({ error: 'idOriginTransaction é obrigatório' });
-      }
+    if (!id_origin_transaction) {
+      return res.status(400).json({ error: 'idOriginTransaction é obrigatório' });
+    }
 
-      const transactions = await Transactions.findOne({
-          where: {
-              id_origin_transaction: id_origin_transaction,
-          },
-      });
+    const transactions = await Transactions.findOne({
+      where: {
+        id_origin_transaction: id_origin_transaction,
+      },
+    });
 
-      if (!transactions) {
-          return res.status(404).json({ message: 'Nenhuma transação encontrada' });
-      }
+    if (!transactions) {
+      return res.status(404).json({ message: 'Nenhuma transação encontrada' });
+    }
 
-      return res.status(200).json(transactions);
+    return res.status(200).json(transactions);
   } catch (error) {
-      console.error('Error fetching transactions:', error);
-      return res.status(500).json({ error: 'Erro ao buscar transações' });
+    console.error('Error fetching transactions:', error);
+    return res.status(500).json({ error: 'Erro ao buscar transações' });
   }
 });
+
+async function getTokenAstraPay() {
+  try {
+    const response = await fetch(process.env.URL_ASTRAPAY + 'oauth/v1/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET
+      })
+    });
+    const data = await response.json();
+    return data.access_token;
+  } catch (error) {
+    console.error('Erro ao obter token:', error);
+  }
+}
+
+async function makeCreditPayment(tokenAstraPay, transactionId) {
+
+  const body = {
+    nameCreditCard: "TESTE",
+    expirationDate: "202512",
+    cvv: 123,
+    amount: 15000,
+    numbersInstallments: 1,
+    idOriginTransaction: 32,
+    description: "Pagamento de teste",
+    cardNumber: "4111111111111111",
+    typePayment: "A_VISTA"
+  };
+
+  try {
+    const response = await fetch(process.env.URL_ASTRAPAY + 'v1/credit', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'x-transaction-id': transactionId,
+        'Authorization': 'Bearer ' + tokenAstraPay,
+      },
+      body      
+    });
+    const data = await response.json();
+    console.log('Resposta:', data);
+  } catch (error) {
+    console.error('Erro ao realizar pagamento:', error.response ? error.response.data : error.message);
+  }
+}
 
 module.exports = router;
