@@ -118,55 +118,57 @@ router.post('/create-transaction', async (req, res) => {
     const {
       id_seller,
       end_to_end,
+      external_id,
+      payment_method,
       homolog
     } = req.body;
 
     // pra testar pelo soap
-    if (homolog != 1) {
-      const authHeader = req.headers['authorization'];
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
-      }
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+    }
 
-      const tokenBearer = authHeader.split(' ')[1];
+    const tokenBearer = authHeader.split(' ')[1];
 
-      // Busca o token ativo na tabela de Token
-      const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+    // Busca o token ativo na tabela de Token
+    const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
 
-      if (!tokenRecord) {
-        return res.status(403).json({ message: "Autorização falhou!" });
-      }
+    if (!tokenRecord) {
+      return res.status(403).json({ message: "Autorização falhou!" });
     }
 
     const data = await makeCreditPayment(await getTokenAstraPay(), uuidv4());
-    
+    console.log(data);
+
+    if (!data) return;
+
+
     // depois que conseguir fazer comunicar com a astrapay gravar a transação no nosso banco
+    const transaction = await Transactions.create({
+      amount: data.amount,
+      cardNumber: data.cardNumber,
+      cvv: data.cvv,
+      description: data.description,
+      expirationDate: data.expirationDate,
+      idOriginTransaction: data.idOriginTransaction,
+      nameCreditCard: data.nameCreditCard,
+      numbersInstallments: data.numbersInstallments,
+      typePayment: data.typePayment,
+      authorizationCode: data.authorizationCode ,
+      creditCardId: data.creditCardId,
+      identificationTransaction: data.identificationTransaction,
+      identificationTransactionCanceled: data.identificationTransactionCanceled,
+      status: data.status,
+      payment_method,
+      token_gateway: tokenRecord.token,
+      id_gateway: tokenRecord.id_gateway,
+      id_seller,
+      external_id,
+      end_to_end
+    });
 
-
-    // const transaction = Transactions.create({
-    //   amount: response.amount,
-    //   cardNumber: response.cardNumber,
-    //   cvv: response.cvv,
-    //   description: response.description,
-    //   expirationDate: response.expirationDate,
-    //   idOriginTransaction: response.idOriginTransaction,
-    //   nameCreditCard: response.nameCreditCard,
-    //   numbersInstallments: response.numbersInstallments,
-    //   typePayment: response.typePayment,
-    //   payment_method: response.payment_method,
-    //   token_gateway: tokenRecord.token,
-    //   id_gateway: tokenRecord.id_gateway,
-    //   id_seller,
-    //   external_id,
-    //   authorizationCode,
-    //   creditCardId,
-    //   identificationTransaction,
-    //   identificationTransactionCanceled,
-    //   status,
-    //   end_to_end
-    // });
-
-    // res.status(201).json(transaction);   
+    res.status(201).json(transaction);
 
 
   } catch (error) {
@@ -392,32 +394,38 @@ async function getTokenAstraPay() {
 async function makeCreditPayment(tokenAstraPay, transactionId) {
 
   const body = {
-    nameCreditCard: "TESTE",
-    expirationDate: "202512",
+    nameCreditCard: "FELIPE R",
+    expirationDate: "202503",
     cvv: 123,
     amount: 15000,
     numbersInstallments: 1,
     idOriginTransaction: 32,
     description: "Pagamento de teste",
-    cardNumber: "4111111111111111",
+    cardNumber: "1111222233334444",
     typePayment: "A_VISTA"
   };
 
+  const token = ' Bearer ' + tokenAstraPay
   try {
-    const response = await fetch(process.env.URL_ASTRAPAY + 'v1/credit', {
+    const response = await fetch('https://api-sandbox.astrapay.com.br/card/v1/credit', {
       method: 'POST',
       headers: {
         'accept': 'application/json',
-        'content-type': 'application/json',
         'x-transaction-id': transactionId,
-        'Authorization': 'Bearer ' + tokenAstraPay,
+        'Content-Type': 'application/json',
+        'Authorization': token
       },
-      body      
+      body: JSON.stringify(body)
     });
+
     const data = await response.json();
-    console.log('Resposta:', data);
+    if (response.ok) {
+      return data;
+    }
+    return false;
   } catch (error) {
     console.error('Erro ao realizar pagamento:', error.response ? error.response.data : error.message);
+    return false;
   }
 }
 
