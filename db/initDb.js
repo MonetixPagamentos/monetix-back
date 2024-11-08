@@ -9,6 +9,9 @@ const TaxaGateway = require('./models/taxaGateway');
 const SubContaSeller = require('./models/subContaSeller');
 const Handler = require('./models/handler');
 const Withdraw = require('./models/withdraw');
+const TransactionItem = require('./models/transactionItem');
+const { version } = require('@babel/core');
+
 
 const initDb = async () => {
   try {
@@ -24,131 +27,37 @@ const initDb = async () => {
     await SubContaSeller.sync();
     await Withdraw.sync();
     await SubContaSeller.sync();
-
     await Handler.sync();
+    await TransactionItem.sync();
     
-
-    // Chama a função para alterar a tabela
-    await alterGatewayTable();
-    await alterUserTable();
-    await alterTransactionsTable();
-    await alterDocumentTable();
-    await alterTokenTable();
-    await alterGatewayTable();
-    await alterTaxaGatewayTable();
-    await alterSubcontaSellerTable();
+    await handlerDatabase();    
 
   } catch (err) {
     console.error('Erro ao inicializar o banco de dados:', err);
   }
 };
 
-// Função para alterar o campo da tabela clientes
-const alterGatewayTable = async () => {
+const handlerDatabase = async () => {
   try {
-    if(true){
-      return;
+    var oldVersion = (await Handler.max('version') || 0);
+    var updated = false;
+    if(oldVersion <= 0){
+      updated =  true;
     }
-    // Alterar o campo telefone para permitir mais caracteres
-    await sequelize.query('ALTER TABLE `gateways` CHANGE `documento_gateway` `document_gateway` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;');
-    console.log('Campo document_gateway alterado com sucesso.');
+    if (oldVersion < 1) {        
+      await sequelize.query('ALTER TABLE `transactions` ADD COLUMN `link_origem` VARCHAR(255);');
+    }   
+
+    if(updated){
+      var newVersion = oldVersion + 1;
+      await Handler.create({
+        version: newVersion
+      });
+    }
+    
   } catch (err) {
     console.error('Erro ao alterar tabela clientes:', err);
   }
 };
-
-const alterUserTable = async () => {
-  try {
-    if(true){
-      return;
-    }
-    // Alterar o campo telefone para permitir mais caracteres
-    await sequelize.query('ALTER TABLE `user` CHANGE `email` `emails` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;');
-    console.log('Campo document_gateway alterado com sucesso.');
-  } catch (err) {
-    console.error('Erro ao alterar tabela clientes:', err);
-  }
-};
-
-
-const alterTransactionsTable = async () => {
-  try {
-    if(true){
-      return;
-    }
-    // aqui montar alteração se precisar
-    // await sequelize.query('ALTER TABLE `user` CHANGE `email` `emails` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;');
-    console.log('Campo document_gateway alterado com sucesso.');
-  } catch (err) {
-    console.error('Erro ao alterar tabela clientes:', err);
-  }
-};
-
-const alterDocumentTable = async () => {
-  try {
-    if(true){
-      return;
-    }
-    //  aqui montar alteração se precisar
-    // await sequelize.query('ALTER TABLE `user` CHANGE `email` `emails` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;');
-    console.log('Campo document_gateway alterado com sucesso.');
-  } catch (err) {
-    console.error('Erro ao alterar tabela clientes:', err);
-  }
-};
-
-const alterTokenTable = async () => {
-  try {
-    if(true){
-      return;
-    }
-    //  aqui montar alteração se precisar
-    // await sequelize.query('ALTER TABLE `user` CHANGE `email` `emails` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;');
-    console.log('Campo document_gateway alterado com sucesso.');
-  } catch (err) {
-    console.error('Erro ao alterar tabela clientes:', err);
-  }
-};
-
-const alterSaldoGatewayTable = async () => {
-  try {
-    if(true){
-      return;
-    }
-    //  aqui montar alteração se precisar
-    // await sequelize.query('ALTER TABLE `user` CHANGE `email` `emails` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;');
-    console.log('Campo document_gateway alterado com sucesso.');
-  } catch (err) {
-    console.error('Erro ao alterar tabela clientes:', err);
-  }
-};
-
-const alterTaxaGatewayTable = async () => {
-  try {
-    if(true){
-      return;
-    }
-    //  aqui montar alteração se precisar
-    // await sequelize.query('ALTER TABLE `user` CHANGE `email` `emails` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;');
-    console.log('Campo document_gateway alterado com sucesso.');
-  } catch (err) {
-    console.error('Erro ao alterar tabela clientes:', err);
-  }
-};
-
-const alterSubcontaSellerTable = async () => {
-  try {
-    if(true){
-      return;
-    }
-    //  aqui montar alteração se precisar
-    // await sequelize.query('ALTER TABLE `user` CHANGE `email` `emails` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL;');
-    console.log('Campo document_gateway alterado com sucesso.');
-  } catch (err) {
-    console.error('Erro ao alterar tabela clientes:', err);
-  }
-};
-
-
 
 module.exports = initDb;

@@ -1,6 +1,10 @@
 const express = require('express');
+const { Sequelize} = require('sequelize');
 const Transactions = require('../db/models/transactions');
 const Token = require('../db/models/tokens');
+const TransactionItem = require('../db/models/transactionItem');
+const SaldoGateway = require('../db/models/saldoGateway');
+const TaxaGateway = require('../db/models/taxaGateway');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 const router = express.Router();
@@ -22,6 +26,21 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - amount
+ *               - cardNumber
+ *               - cvv
+ *               - description
+ *               - expirationDate
+ *               - idOriginTransaction
+ *               - nameCreditCard
+ *               - numbersInstallments
+ *               - typePayment
+ *               - payment_method
+ *               - id_gateway
+ *               - postback_gateway
+ *               - id_seller
+ *               - link_origem                
  *             properties:
  *               amount:
  *                 type: number
@@ -66,6 +85,24 @@ const router = express.Router();
  *               link_origem:
  *                 type: string
  *                 description: Link da origem da venda.
+ *               itens:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - item_description
+ *                     - item_amount
+ *                     - item_qtde 
+ *                   properties:
+ *                     item_description:
+ *                       type: string
+ *                       description: Descrição da venda.     
+ *                     item_amount:
+ *                       type: string
+ *                       description: Valor da venda.
+ *                     item_qtde:
+ *                       type: string
+ *                       description: Quantidade da venda. 
  *     responses:
  *       201:
  *         description: Transação criada com sucesso.
@@ -119,36 +156,53 @@ const router = express.Router();
 router.post('/create-transaction', async (req, res) => {
   try {
     const {
-      id_seller,
+      id_seller,      
       end_to_end,
       external_id,
       payment_method,
-      homolog,
-      link_origem
+      link_origem,
+      nameCreditCard,
+      expirationDate,
+      cvv,
+      amount,
+      numbersInstallments,
+      idOriginTransaction,
+      description,
+      cardNumber,
+      typePayment,
+      itens
     } = req.body;
 
-    // pra testar pelo soap
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
-    }
+    // const authHeader = req.headers['authorization'];
+    // if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    //   return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+    // }
 
-    const tokenBearer = authHeader.split(' ')[1];
+    // const tokenBearer = authHeader.split(' ')[1];
 
-    // Busca o token ativo na tabela de Token
-    const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+    const tokenRecord = await Token.findOne({ where: { /*token: tokenBearer,*/ ativo: 1 } });
 
-    if (!tokenRecord) {
-      return res.status(403).json({ message: "Autorização falhou!" });
-    }
+    // if (!tokenRecord) {
+    //   return res.status(403).json({ message: "Autorização falhou!" });
+    // }
 
-    const data = await makeCreditPayment(await getTokenAstraPay(), uuidv4());
+    const body = {
+      nameCreditCard: nameCreditCard,
+      expirationDate: expirationDate,
+      cvv: cvv,
+      amount: amount,
+      numbersInstallments: numbersInstallments,
+      idOriginTransaction: idOriginTransaction,
+      description: description,
+      cardNumber: cardNumber,
+      typePayment: typePayment
+    };
+
+    const data = await makeCreditPayment(await getTokenAstraPay(), uuidv4(), body);
     console.log(data);
 
     if (!data) return;
 
-
-    // depois que conseguir fazer comunicar com a astrapay gravar a transação no nosso banco
     const transaction = await Transactions.create({
       amount: data.amount,
       cardNumber: data.cardNumber,
@@ -159,7 +213,7 @@ router.post('/create-transaction', async (req, res) => {
       nameCreditCard: data.nameCreditCard,
       numbersInstallments: data.numbersInstallments,
       typePayment: data.typePayment,
-      authorizationCode: data.authorizationCode ,
+      authorizationCode: data.autorizationCode,
       creditCardId: data.creditCardId,
       identificationTransaction: data.identificationTransaction,
       identificationTransactionCanceled: data.identificationTransactionCanceled,
@@ -173,14 +227,30 @@ router.post('/create-transaction', async (req, res) => {
       link_origem
     });
 
-    res.status(201).json(transaction);
+    if (transaction && data.status == "PAID") {
+      
+      await itens.forEach((item) => {
+        TransactionItem.create({
+          id_transaction: transaction.id,
+          id_gateway: tokenRecord.id_gateway,
+          description: item.item_description,
+          amount: item.item_amount,
+          qtde: item.item_qtde
+        });
+      });      
 
+      await refreshSaldoGateway(tokenRecord.id_gateway, data.amount, data.numbersInstallments);
+    }
+
+    res.status(201).json(transaction);
 
   } catch (error) {
     console.error("Erro ao criar transação:", error);
     res.status(500).json({ error: "Erro ao criar transação." });
   }
 });
+
+
 
 //documentacao
 /**
@@ -396,20 +466,37 @@ async function getTokenAstraPay() {
   }
 }
 
-async function makeCreditPayment(tokenAstraPay, transactionId) {
+async function refreshSaldoGateway(id_gateway, valor, numbersInstallments) {  
+  try {        
 
-  const body = {
-    nameCreditCard: "FELIPE R",
-    expirationDate: "202503",
-    cvv: 123,
-    amount: 15000,
-    numbersInstallments: 1,
-    idOriginTransaction: 32,
-    description: "Pagamento de teste",
-    cardNumber: "1111222233334444",
-    typePayment: "A_VISTA"
-  };
+    const taxaGateway = await TaxaGateway.findOne({id_gateway: id_gateway});
+    
+    const taxa_reserva = taxaGateway.taxa_reserva;
+    const campo = `taxa_cartao_${numbersInstallments}`; 
+    const taxa = taxaGateway[campo]; 
+    
+    var descTaxCard =  (valor * (taxa / 100));
+    var valReserve =  (valor * (taxa_reserva / 100));
 
+    const valDisponivel = valor - descTaxCard - valReserve - taxaGateway.taxa_transacao;
+
+    
+    await SaldoGateway.update(
+      {
+        val_disponivel: Sequelize.literal(`val_disponivel + ${valDisponivel}`),
+        val_reserva: Sequelize.literal(`val_reserva + ${valReserve}`)
+      },
+      {
+        where: {id_gateway: id_gateway } 
+      }
+    );
+    console.log("Campos atualizados com sucesso.");
+  } catch (error) {
+    console.error("Erro ao atualizar os campos:", error);
+  }
+}
+
+async function makeCreditPayment(tokenAstraPay, transactionId, body) {
   const token = ' Bearer ' + tokenAstraPay
   try {
     const response = await fetch('https://api-sandbox.astrapay.com.br/card/v1/credit', {
