@@ -63,6 +63,9 @@ const router = express.Router();
  *               id_seller:
  *                 type: integer
  *                 description: Id do vendedor.  
+ *               link_origem:
+ *                 type: string
+ *                 description: Link da origem da venda.
  *     responses:
  *       201:
  *         description: Transação criada com sucesso.
@@ -120,7 +123,8 @@ router.post('/create-transaction', async (req, res) => {
       end_to_end,
       external_id,
       payment_method,
-      homolog
+      homolog,
+      link_origem
     } = req.body;
 
     // pra testar pelo soap
@@ -165,7 +169,8 @@ router.post('/create-transaction', async (req, res) => {
       id_gateway: tokenRecord.id_gateway,
       id_seller,
       external_id,
-      end_to_end
+      end_to_end,
+      link_origem
     });
 
     res.status(201).json(transaction);

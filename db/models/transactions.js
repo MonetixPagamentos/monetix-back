@@ -25,7 +25,7 @@ const Transactions = sequelize.define('transactions', {
     identificationTransaction: { type: DataTypes.STRING, allowNull: true }, // Identificador de transação
     identificationTransactionCanceled: { type: DataTypes.STRING, allowNull: true }, // Identificador de transação cancelada
     status: { type: DataTypes.STRING, allowNull: true }, // Status da transação
-
+    link_origem: { type: DataTypes.STRING, allowNull: false },
 }, {
     timestamps: true, // Isso gerencia createdAt e updatedAt automaticamente
     underscored: true,
