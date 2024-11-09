@@ -39,14 +39,20 @@ const initDb = async () => {
 
 const handlerDatabase = async () => {
   try {
-    var oldVersion = (await Handler.max('version') || 0);
+    var oldVersion = 3;
     var updated = false;
     if(oldVersion <= 0){
       updated =  true;
     }
     if (oldVersion < 1) {        
       await sequelize.query('ALTER TABLE `transactions` ADD COLUMN `link_origem` VARCHAR(255);');
+      updated =  true;
     }   
+
+    if (oldVersion < 2) {        
+      await sequelize.query('ALTER TABLE `transactions` ADD COLUMN `updated_balance` INTEGER;');
+      updated =  true;
+    }
 
     if(updated){
       var newVersion = oldVersion + 1;

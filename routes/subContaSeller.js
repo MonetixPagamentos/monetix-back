@@ -137,7 +137,6 @@ const Token = require('../db/models/tokens');
  *       bearerFormat: JWT
  */
 
-
 router.post('/create-subconta', async (req, res) => {
     const {
         id_seller, nome_fantasia, razao_social, cnpj, telefone,

@@ -1,5 +1,5 @@
 const express = require('express');
-const { Sequelize} = require('sequelize');
+const { Sequelize } = require('sequelize');
 const Transactions = require('../db/models/transactions');
 const Token = require('../db/models/tokens');
 const TransactionItem = require('../db/models/transactionItem');
@@ -156,7 +156,7 @@ const router = express.Router();
 router.post('/create-transaction', async (req, res) => {
   try {
     const {
-      id_seller,      
+      id_seller,
       end_to_end,
       external_id,
       payment_method,
@@ -170,7 +170,17 @@ router.post('/create-transaction', async (req, res) => {
       description,
       cardNumber,
       typePayment,
+
+      // pix
+      keyPix,
+      merchantName,
+      merchantCity,
+      txid,
+      postback_url,
+      // fim pix
+
       itens
+
     } = req.body;
 
     // const authHeader = req.headers['authorization'];
@@ -186,60 +196,100 @@ router.post('/create-transaction', async (req, res) => {
     //   return res.status(403).json({ message: "Autorização falhou!" });
     // }
 
-    const body = {
-      nameCreditCard: nameCreditCard,
-      expirationDate: expirationDate,
-      cvv: cvv,
-      amount: amount,
-      numbersInstallments: numbersInstallments,
-      idOriginTransaction: idOriginTransaction,
-      description: description,
-      cardNumber: cardNumber,
-      typePayment: typePayment
-    };
+    var data;
+    var transaction;
+    if (payment_method === 'CARD') {
 
-    const data = await makeCreditPayment(await getTokenAstraPay(), uuidv4(), body);
-    console.log(data);
+      const body = {
+        nameCreditCard: nameCreditCard,
+        expirationDate: expirationDate,
+        cvv: cvv,
+        amount: amount,
+        numbersInstallments: numbersInstallments,
+        idOriginTransaction: idOriginTransaction,
+        description: description,
+        cardNumber: cardNumber,
+        typePayment: typePayment,
+      };
 
-    if (!data) return;
+      data = await makeCreditPayment(await getTokenAstraPay(), uuidv4(), body);
 
-    const transaction = await Transactions.create({
-      amount: data.amount,
-      cardNumber: data.cardNumber,
-      cvv: data.cvv,
-      description: data.description,
-      expirationDate: data.expirationDate,
-      idOriginTransaction: data.idOriginTransaction,
-      nameCreditCard: data.nameCreditCard,
-      numbersInstallments: data.numbersInstallments,
-      typePayment: data.typePayment,
-      authorizationCode: data.autorizationCode,
-      creditCardId: data.creditCardId,
-      identificationTransaction: data.identificationTransaction,
-      identificationTransactionCanceled: data.identificationTransactionCanceled,
-      status: data.status,
-      payment_method,
-      token_gateway: tokenRecord.token,
-      id_gateway: tokenRecord.id_gateway,
-      id_seller,
-      external_id,
-      end_to_end,
-      link_origem
+      if (!data) return;
+
+        transaction = await Transactions.create({
+        amount: data.amount,
+        cardNumber: data.cardNumber,
+        cvv: data.cvv,
+        description: data.description,
+        expirationDate: data.expirationDate,
+        idOriginTransaction: data.idOriginTransaction,
+        nameCreditCard: data.nameCreditCard,
+        numbersInstallments: data.numbersInstallments,
+        typePayment: data.typePayment,
+        authorizationCode: data.autorizationCode,
+        creditCardId: data.creditCardId,
+        identificationTransaction: data.identificationTransaction,
+        identificationTransactionCanceled: data.identificationTransactionCanceled,
+        status: data.status,
+        payment_method,
+        token_gateway: tokenRecord.token,
+        id_gateway: tokenRecord.id_gateway,
+        id_seller: id_seller,
+        external_id: external_id,
+        end_to_end: end_to_end,
+        link_origem: link_origem,
+        postback_url: postback_url
+      });
+
+    } else if (payment_method === 'PIX') {
+
+      const body_pix = {
+        txid: txid,
+        keyPix: keyPix,
+        merchantName: merchantName,
+        merchantCity: merchantCity,
+        
+        amount: amount
+      }
+      var uuiD = uuidv4(); 
+      data = await makePixPayment(await getTokenAstraPay(), uuiD, body_pix);
+
+      if (!data) return;        
+
+        transaction = await Transactions.create({
+        amount: amount,      
+        description: description,        
+        idOriginTransaction: idOriginTransaction,         
+        identificationTransaction: identificationTransaction,    
+        payment_method: payment_method,
+        token_gateway: tokenRecord.token,
+        id_gateway: tokenRecord.id_gateway,
+        id_seller: id_seller,
+        external_id: external_id,
+        end_to_end: uuiD,
+        link_origem: link_origem,
+        postback_url: postback_url,
+        status: "pending"
+      });
+    }
+
+    await itens.forEach((item) => {
+      TransactionItem.create({
+        id_transaction: transaction.id,
+        id_gateway: tokenRecord.id_gateway,
+        description: item.item_description,
+        amount: item.item_amount,
+        qtde: item.item_qtde
+      });
     });
 
-    if (transaction && data.status == "PAID") {
-      
-      await itens.forEach((item) => {
-        TransactionItem.create({
-          id_transaction: transaction.id,
-          id_gateway: tokenRecord.id_gateway,
-          description: item.item_description,
-          amount: item.item_amount,
-          qtde: item.item_qtde
-        });
-      });      
+    if (transaction && data.status == "PAID") {    
 
-      await refreshSaldoGateway(tokenRecord.id_gateway, data.amount, data.numbersInstallments);
+      const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, data.amount, data.numbersInstallments);
+
+      if (refreshSaldo) {
+        updateBalance(transaction.id);
+      }
     }
 
     res.status(201).json(transaction);
@@ -249,8 +299,6 @@ router.post('/create-transaction', async (req, res) => {
     res.status(500).json({ error: "Erro ao criar transação." });
   }
 });
-
-
 
 //documentacao
 /**
@@ -466,40 +514,41 @@ async function getTokenAstraPay() {
   }
 }
 
-async function refreshSaldoGateway(id_gateway, valor, numbersInstallments) {  
-  try {        
+async function refreshSaldoGateway(id_gateway, valor, numbersInstallments) {
+  try {
 
-    const taxaGateway = await TaxaGateway.findOne({id_gateway: id_gateway});
-    
+    const taxaGateway = await TaxaGateway.findOne({ id_gateway: id_gateway });
+
     const taxa_reserva = taxaGateway.taxa_reserva;
-    const campo = `taxa_cartao_${numbersInstallments}`; 
-    const taxa = taxaGateway[campo]; 
-    
-    var descTaxCard =  (valor * (taxa / 100));
-    var valReserve =  (valor * (taxa_reserva / 100));
+    const campo = `taxa_cartao_${numbersInstallments}`;
+    const taxa = taxaGateway[campo];
+
+    var descTaxCard = (valor * (taxa / 100));
+    var valReserve = (valor * (taxa_reserva / 100));
 
     const valDisponivel = valor - descTaxCard - valReserve - taxaGateway.taxa_transacao;
 
-    
-    await SaldoGateway.update(
-      {
+
+   await SaldoGateway.update(
+       {
         val_disponivel: Sequelize.literal(`val_disponivel + ${valDisponivel}`),
         val_reserva: Sequelize.literal(`val_reserva + ${valReserve}`)
       },
       {
-        where: {id_gateway: id_gateway } 
+        where: { id_gateway: id_gateway }
       }
     );
     console.log("Campos atualizados com sucesso.");
+    return true;
   } catch (error) {
     console.error("Erro ao atualizar os campos:", error);
   }
-}
+} 
 
 async function makeCreditPayment(tokenAstraPay, transactionId, body) {
   const token = ' Bearer ' + tokenAstraPay
   try {
-    const response = await fetch('https://api-sandbox.astrapay.com.br/card/v1/credit', {
+    const response = await fetch(process.env.URL_ASTRAPAY + 'card/v1/credit', {
       method: 'POST',
       headers: {
         'accept': 'application/json',
@@ -518,6 +567,43 @@ async function makeCreditPayment(tokenAstraPay, transactionId, body) {
   } catch (error) {
     console.error('Erro ao realizar pagamento:', error.response ? error.response.data : error.message);
     return false;
+  }
+}
+
+async function makePixPayment(tokenAstraPay, transactionId, body) {
+  const token = ' Bearer ' + tokenAstraPay
+  try {
+    const response = await fetch(process.env.URL_ASTRAPAY + 'charge/v1/cob-static/encode', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'x-transaction-id': transactionId,
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      return data;
+    }
+    return false;
+  } catch (error) {
+    console.error('Erro ao realizar pagamento:', error.response ? error.response.data : error.message);
+    return false;
+  }
+}
+
+async function updateBalance(id_transaction) {
+  try {
+    await Transactions.update(
+      { updated_balance: 1 },
+      { where: { id: id_transaction } }
+    );
+    console.log("Campo updated_balance atualizado, id_transaction: " + id_transaction);
+  } catch (error) {
+    console.error("Erro ao atualizar o campo updated_balance:", error);
   }
 }
 

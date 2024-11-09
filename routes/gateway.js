@@ -8,57 +8,36 @@ const Token = require('../db/models/tokens');
 const router = express.Router();
 
 // Rota para criar um novo cliente
-router.post('/novo-gateway/:userId', async (req, res) => {
+router.post('/cadastro1/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const { gateway_name,
+    const {
+      gateway_name,
       document_gateway,
       business_opening_date,
       statement_descriptor,
-      middle_ticket,
-      zip_code,
-      street,
-      number,
-      city,
-      state,
-      district,
-      country,
-      ownew,
-      document_responsable,
-      phone_responsable,
-      email_responsable } = req.body;
+      middle_ticket
+    } = req.body;
 
     const token_id = uuidv4(); // Gerando um UUID
 
     const gateway = await Gateway.create({
       gateway_name,
+      owner,
       document_gateway,
       business_opening_date,
       statement_descriptor,
       middle_ticket,
-      zip_code,
-      street,
-      number,
-      city,
-      state,
-      district,
-      country,
-      ownew,
-      document_responsable,
-      phone_responsable,
-      email_responsable,
       user_id: userId,
       token_id,
-      status: 0,
-      ds_status: 'Aguardando.'
     });
-    
+
     if (gateway && gateway.id) {
-      
+
       await Token.create({
         token: token_id,
-        id_gateway: gateway.id        
+        id_gateway: gateway.id
       });
 
       await SaldoGateway.create({
@@ -68,8 +47,8 @@ router.post('/novo-gateway/:userId', async (req, res) => {
         id_usuario: gateway.user_id
       });
 
-      await TaxaGateway.create({        
-        id_gateway: gateway.id, 
+      await TaxaGateway.create({
+        id_gateway: gateway.id,
         id_user: gateway.user_id
       });
     }
@@ -85,6 +64,126 @@ router.post('/novo-gateway/:userId', async (req, res) => {
     }
     console.log(err)
     res.status(500).send(err);
+  }
+});
+
+// dados do responsavel
+router.post('/cadastro2', async (req, res) => {
+  const {
+    gateway_id,
+    name_responsable,
+    document_responsable,
+    phone_responsable,
+    email_responsable,
+    birth_date,
+    mother_name
+  } = req.body;
+
+
+  try {
+    const updated = await Gateway.update(
+      {
+        name_responsable: name_responsable,
+        document_responsable: document_responsable,
+        phone_responsable: phone_responsable,
+        email_responsable: email_responsable,
+        birth_date: birth_date,
+        mother_name: mother_name,
+        sing_up_step: 2
+
+      },
+      {
+        where: { id: gateway_id }
+      }
+    );
+
+    if (updated) {
+      console.log('Update realizado com sucesso!');
+      res.status(200).json({ gateway_id: gateway_id });
+    } else {
+      console.log('Nenhum registro foi atualizado.');
+    }
+  } catch (error) {
+    console.error('Erro ao realizar o update:', error);
+    res.status(500).send(error);
+  }
+});
+
+// dados de endereço
+router.post('/cadastro3', async (req, res) => {
+  const {
+    gateway_id,
+    zip_code,
+    street,
+    number,
+    city,
+    state,
+    district,
+    country
+  } = req.body;
+
+  try {
+    const updated = await Gateway.update(
+      {
+        zip_code: zip_code,
+        street: street,
+        number: number,
+        city: city,
+        state: state,
+        district: district,
+        country: country,
+        sing_up_step: 3
+      },
+      {
+        where: { id: gateway_id }
+      }
+    );
+
+    if (updated) {
+      console.log('Update realizado com sucesso!');
+      res.status(200).json({ gateway_id: gateway_id });
+    } else {
+      console.log('Nenhum registro foi atualizado.');
+    }
+  } catch (error) {
+    console.error('Erro ao realizar o update:', error);
+    res.status(500).send(error);
+  }
+});
+
+// dados bancarios
+router.post('/cadastro4', async (req, res) => {
+  const {
+    gateway_id,
+    bank,
+    agency,
+    account,
+    type_account
+  } = req.body;
+
+  try {
+    const updated = await Gateway.update(
+      {
+        bank: bank,
+        agency: agency,
+        account: account,
+        type_account: type_account,
+        sing_up_step: 4
+      },
+      {
+        where: { id: gateway_id }
+      }
+    );
+
+    if (updated) {
+      console.log('Update realizado com sucesso!');
+      res.status(200).json({ gateway_id: gateway_id });
+    } else {
+      console.log('Nenhum registro foi atualizado.');
+    }
+  } catch (error) {
+    console.error('Erro ao realizar o update:', error);
+    res.status(500).send(error);
   }
 });
 

@@ -24,26 +24,26 @@ const upload = multer({
 router.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 router.post('/documentos-anexos', upload.fields([
-    { name: 'document0', maxCount: 1 }, //contratoSocial
-    { name: 'document1', maxCount: 1 }, // frente
-    { name: 'document2', maxCount: 1 }, // verso
-    { name: 'document3', maxCount: 1 } //selfie
+    { name: 'file0', maxCount: 1 }, //contratoSocial
+    { name: 'file1', maxCount: 1 }, // frente
+    { name: 'file2', maxCount: 1 }, // verso
+    { name: 'file3', maxCount: 1 } //selfie
 ]), async (req, res) => {
-    const idUser = req.body.idUser;
-    const idGateway = req.body.idGateway;
+    const idUser = req.body.id_user;
+    const idGateway = req.body.id_gateway;
 
     if (!idGateway) {
         return res.status(400).send('ID da empresa é obrigatório!');
     }
  
-    if (!req.files.document0 || !req.files.document1 || !req.files.document2 || !req.files.document3) {
+    if (!req.files.file0 || !req.files.file1 || !req.files.file2 || !req.files.file3) {
         return res.status(400).send('Todos os arquivos são obrigatórios!');
     }
     
-    const contratoSocialPath = req.files.document0[0].path;
-    const documentoFrentePath = req.files.document1[0].path;
-    const documentoVersoPath = req.files.document2[0].path;
-    const selfiePath = req.files.document3[0].path;
+    const contratoSocialPath = req.files.file0[0].path;
+    const documentoFrentePath = req.files.file1[0].path;
+    const documentoVersoPath = req.files.file2[0].path;
+    const selfiePath = req.files.file3[0].path;
 
     try {        
         const existingDocument = await Documents.findOne({ where: { id_gateway: idGateway } });

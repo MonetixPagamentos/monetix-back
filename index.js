@@ -28,6 +28,7 @@ initDb().then(() => {
   app.use('/documento', documents);
   app.use('/withdraw', withdraw);
   app.use('/seller', subContaSeller);
+  app.use('/pix', pix);
   
   app.get('/', (req, res) => {
     res.send('API MONETIX :D');
@@ -37,12 +38,13 @@ initDb().then(() => {
     try {
       const { email, senha } = req.body;
 
-      let existe_gateway = false;
-      let id_gateway = null;
-      let token_gateway = null;
-      let status_gateway = null;
-      let existe_documento = false;
-      let status_documento = null;
+      var existe_gateway = false;
+      var id_gateway = null;
+      var token_gateway = null;
+      var status_gateway = null;
+      var existe_documento = false;
+      var status_documento = null;
+      var sing_up_step = null;
 
       const user = await User.findOne({ where: { email: email } });
 
@@ -50,8 +52,9 @@ initDb().then(() => {
         console.log('Usuário encontrado e senha válida:', user);
 
         const gateway = await Gateway.findOne({ where: { user_id: user.id } });
+        sing_up_step = gateway.sing_up_step;
 
-        if (gateway) {
+        if (gateway && sing_up_step == 4) {
           existe_gateway = gateway ? true : false;
           id_gateway = gateway.id;
           token_gateway = gateway.token_id;
@@ -73,7 +76,8 @@ initDb().then(() => {
           token_gateway: token_gateway,
           status_gateway: status_gateway,
           existe_documento: existe_documento,
-          status_documento: status_documento
+          status_documento: status_documento,
+          sing_up_step: sing_up_step
         });
 
       } else {

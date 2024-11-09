@@ -16,7 +16,8 @@ const Transactions = sequelize.define('transactions', {
     payment_method: { type: DataTypes.STRING, allowNull: false },
     token_gateway: { type: DataTypes.STRING, allowNull: false },
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },
-        
+    postback_url :{ type: DataTypes.STRING, allowNull: false},    
+    payment_date: {type: DataTypes.DATE, allowNull: true},
     // Campos de retorno
     external_id: { type: DataTypes.STRING, allowNull: true }, // Código de autorização
     end_to_end: { type: DataTypes.STRING, allowNull: true},
@@ -26,6 +27,15 @@ const Transactions = sequelize.define('transactions', {
     identificationTransactionCanceled: { type: DataTypes.STRING, allowNull: true }, // Identificador de transação cancelada
     status: { type: DataTypes.STRING, allowNull: true }, // Status da transação
     link_origem: { type: DataTypes.STRING, allowNull: false },
+    updated_balance: { type: DataTypes.INTEGER, defaultValue: 0 },
+
+    // pix
+
+    keyPix: { type: DataTypes.STRING, allowNull: true, comment: 'Key PIX' },
+    merchantName: { type: DataTypes.STRING, allowNull: true, comment: 'Name of the establishment or individual PIX' },
+    merchantCity: { type: DataTypes.STRING, allowNull: true, comment: 'Name of the city where the pix was generated PIX' },    
+    txid: { type: DataTypes.STRING, allowNull: true, comment: 'Unique PIX billing identifier' }
+
 }, {
     timestamps: true, // Isso gerencia createdAt e updatedAt automaticamente
     underscored: true,
