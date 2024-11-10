@@ -28,7 +28,7 @@ initDb().then(() => {
   app.use('/documento', documents);
   app.use('/withdraw', withdraw);
   app.use('/seller', subContaSeller);
-  app.use('/pix', pix);
+  //app.use('/pix', pix);
   
   app.get('/', (req, res) => {
     res.send('API MONETIX :D');

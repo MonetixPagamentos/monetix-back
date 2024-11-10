@@ -8,6 +8,7 @@ const TaxaGateway = require('../db/models/taxaGateway');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 const router = express.Router();
+const enviarEmail = require('../components/email');
 
 //documentacao
 /**
@@ -183,40 +184,39 @@ router.post('/create-transaction', async (req, res) => {
 
     } = req.body;
 
-    // const authHeader = req.headers['authorization'];
-    // if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    //   return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
-    // }
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+    }
 
-    // const tokenBearer = authHeader.split(' ')[1];
+    const tokenBearer = authHeader.split(' ')[1];
 
     const tokenRecord = await Token.findOne({ where: { /*token: tokenBearer,*/ ativo: 1 } });
 
-    // if (!tokenRecord) {
-    //   return res.status(403).json({ message: "Autorização falhou!" });
-    // }
+    if (!tokenRecord) {
+      return res.status(403).json({ message: "Autorização falhou!" });
+    }
 
     var data;
     var transaction;
     if (payment_method === 'CARD') {
-
-      const body = {
-        nameCreditCard: nameCreditCard,
-        expirationDate: expirationDate,
-        cvv: cvv,
-        amount: amount,
-        numbersInstallments: numbersInstallments,
-        idOriginTransaction: idOriginTransaction,
-        description: description,
-        cardNumber: cardNumber,
-        typePayment: typePayment,
+      const cardData = {
+        nameCreditCard,
+        expirationDate,
+        cvv,
+        amount,
+        numbersInstallments,
+        idOriginTransaction,
+        description,
+        cardNumber,
+        typePayment
       };
 
-      data = await makeCreditPayment(await getTokenAstraPay(), uuidv4(), body);
+      data = await makeCreditPayment(await getTokenAstraPay(), uuidv4(), cardData);
 
-      if (!data) return;
+      if (!data) return res.status(400).json({ error: "Falha no pagamento com cartão" });
 
-        transaction = await Transactions.create({
+      transaction = await Transactions.create({
         amount: data.amount,
         cardNumber: data.cardNumber,
         cvv: data.cvv,
@@ -234,43 +234,45 @@ router.post('/create-transaction', async (req, res) => {
         payment_method,
         token_gateway: tokenRecord.token,
         id_gateway: tokenRecord.id_gateway,
-        id_seller: id_seller,
-        external_id: external_id,
-        end_to_end: end_to_end,
-        link_origem: link_origem,
-        postback_url: postback_url
+        id_seller,
+        external_id,
+        end_to_end,
+        link_origem,
+        postback_url
       });
 
     } else if (payment_method === 'PIX') {
 
-      const body_pix = {
-        txid: txid,
-        keyPix: keyPix,
-        merchantName: merchantName,
-        merchantCity: merchantCity,
-        
+      const pixData = {
+        txid,
+        keyPix,
+        merchantName,
+        merchantCity,
         amount: amount
       }
-      var uuiD = uuidv4(); 
-      data = await makePixPayment(await getTokenAstraPay(), uuiD, body_pix);
+      
+      var uuiD = uuidv4();
+      data = await makePixPayment(await getTokenAstraPay(), uuiD, pixData);
 
-      if (!data) return;        
+      if (!data) return res.status(400).json({ error: "Falha no pagamento PIX" });
 
-        transaction = await Transactions.create({
-        amount: amount,      
-        description: description,        
-        idOriginTransaction: idOriginTransaction,         
-        identificationTransaction: identificationTransaction,    
-        payment_method: payment_method,
+      transaction = await Transactions.create({
+        amount,
+        description,
+        idOriginTransaction,
+        identificationTransaction: data.identificationTransaction,
+        payment_method,
         token_gateway: tokenRecord.token,
         id_gateway: tokenRecord.id_gateway,
-        id_seller: id_seller,
-        external_id: external_id,
+        id_seller,
+        external_id,
         end_to_end: uuiD,
-        link_origem: link_origem,
-        postback_url: postback_url,
+        link_origem,
+        postback_url,
         status: "pending"
       });
+    } else {
+      return res.status(400).json({ error: "Método de pagamento inválido" });
     }
 
     await itens.forEach((item) => {
@@ -283,10 +285,8 @@ router.post('/create-transaction', async (req, res) => {
       });
     });
 
-    if (transaction && data.status == "PAID") {    
-
+    if (transaction && data.status == "PAID") {
       const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, data.amount, data.numbersInstallments);
-
       if (refreshSaldo) {
         updateBalance(transaction.id);
       }
@@ -529,8 +529,8 @@ async function refreshSaldoGateway(id_gateway, valor, numbersInstallments) {
     const valDisponivel = valor - descTaxCard - valReserve - taxaGateway.taxa_transacao;
 
 
-   await SaldoGateway.update(
-       {
+    await SaldoGateway.update(
+      {
         val_disponivel: Sequelize.literal(`val_disponivel + ${valDisponivel}`),
         val_reserva: Sequelize.literal(`val_reserva + ${valReserve}`)
       },
@@ -543,7 +543,7 @@ async function refreshSaldoGateway(id_gateway, valor, numbersInstallments) {
   } catch (error) {
     console.error("Erro ao atualizar os campos:", error);
   }
-} 
+}
 
 async function makeCreditPayment(tokenAstraPay, transactionId, body) {
   const token = ' Bearer ' + tokenAstraPay
