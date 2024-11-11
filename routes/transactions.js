@@ -158,26 +158,26 @@ router.post('/create-transaction', async (req, res) => {
   try {
     const {
       id_seller,
-      end_to_end,
-      external_id,
+      end_to_end, //por na doc
+      external_id, //por na doc
       payment_method,
       link_origem,
       nameCreditCard,
       expirationDate,
       cvv,
       amount,
-      numbersInstallments,
+      numbersInstallments, //por na doc 1 a 12
       idOriginTransaction,
       description,
       cardNumber,
       typePayment,
 
       // pix
-      keyPix,
-      merchantName,
-      merchantCity,
-      txid,
-      postback_url,
+      keyPix, //por na doc - se for pix
+      merchantName, //por na doc - se for pix
+      merchantCity, //por na doc - se for pix
+      txid, //por na doc - se for pix
+      postback_url, //por na doc - se for pix
       // fim pix
 
       itens

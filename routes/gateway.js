@@ -14,6 +14,7 @@ router.post('/cadastro1/:userId', async (req, res) => {
 
     const {
       gateway_name,
+      owner,
       document_gateway,
       business_opening_date,
       statement_descriptor,

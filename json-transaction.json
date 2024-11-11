@@ -1,0 +1,35 @@
+{
+  "amount": 2001,
+  "cardNumber": "4444444444444444",
+  "cvv": "444",
+  "end_to_end": "123x1234asd12e1",
+  "external_id": "123x1234asd12e1",
+  "description": "teste",
+  "expirationDate": "202411",
+  "idOriginTransaction": "2411111622",
+  "nameCreditCard": "TESTE CREDIT CARD",
+  "numbersInstallments": 1,
+  "typePayment": "A_VISTA",
+  "payment_method": "CARD",
+  "id_gateway": "1",
+  "postback_gateway": "https://postabackurl.com/teste-api",
+  "id_seller": 12,
+  "link_origem": "https://teste.com",
+  "keyPix": "0564250902",
+  "merchantName": "Begins",
+  "merchantCity": "INDAIAL",
+  "txid": "123123aishjsiodj123j1io2js",
+  "postback_url": "https://postabackurl.com/teste-api",
+  "itens": [
+    {
+      "item_description": "TENIS NINENINE",
+      "item_amount": "1000",
+      "item_qtde": "1"
+    },
+    { 
+      "item_description": "TENIS FIVEFIVE",
+      "item_amount": "1000",
+      "item_qtde": "1"
+    }
+  ]
+}
