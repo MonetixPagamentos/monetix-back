@@ -54,6 +54,12 @@ const handlerDatabase = async () => {
       updated =  true;
     }
 
+    if (oldVersion < 3) {        
+      await sequelize.query('ALTER TABLE `saldo_gateways` ADD COLUMN `id_seller` INTEGER;');
+      updated =  true;
+    }
+    
+
     if(updated){
       var newVersion = oldVersion + 1;
       await Handler.create({

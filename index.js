@@ -9,12 +9,13 @@ const subContaSeller = require('./routes/subContaSeller');
 const User = require('./db/models/user');
 const Gateway = require('./db/models/gateway');
 const Documents = require('./db/models/documents');
+const dashboard = require('./routes/dashboard');
 const setupSwagger = require('./swagger'); 
 const cors = require('cors');
 const app = express();
 
 app.use(cors());
-const port = 3001;
+const port = 3000;
 setupSwagger(app);
 
 app.use(express.json()); // Para analisar JSON
@@ -28,6 +29,8 @@ initDb().then(() => {
   app.use('/documento', documents);
   app.use('/withdraw', withdraw);
   app.use('/seller', subContaSeller);
+  app.use('/dashboard', dashboard);
+
   //app.use('/pix', pix);
   
   app.get('/', (req, res) => {

@@ -155,6 +155,10 @@ const enviarEmail = require('../components/email');
  */
 
 router.post('/create-transaction', async (req, res) => {
+
+ //const c = getTokenAstraPay();
+ //const u = uuidv4();
+
   try {
     const {
       id_seller,
@@ -285,8 +289,9 @@ router.post('/create-transaction', async (req, res) => {
       });
     });
 
+ 
     if (transaction && data.status == "PAID") {
-      const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, data.amount, data.numbersInstallments);
+      const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, data.amount, data.numbersInstallments);
       if (refreshSaldo) {
         updateBalance(transaction.id);
       }
@@ -514,7 +519,7 @@ async function getTokenAstraPay() {
   }
 }
 
-async function refreshSaldoGateway(id_gateway, valor, numbersInstallments) {
+async function refreshSaldoGateway(id_gateway, id_seller, valor, numbersInstallments) {
   try {
 
     const taxaGateway = await TaxaGateway.findOne({ id_gateway: id_gateway });
@@ -535,7 +540,7 @@ async function refreshSaldoGateway(id_gateway, valor, numbersInstallments) {
         val_reserva: Sequelize.literal(`val_reserva + ${valReserve}`)
       },
       {
-        where: { id_gateway: id_gateway }
+        where: { id_gateway: id_gateway, id_seller: id_seller }
       }
     );
     console.log("Campos atualizados com sucesso.");

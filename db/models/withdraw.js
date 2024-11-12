@@ -8,14 +8,16 @@ const Withdraw = sequelize.define('withdraw', {
     end_to_end: { type: DataTypes.STRING, allowNull: true},
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },
     id_user: { type: DataTypes.INTEGER, allowNull: false },
-    amount: {  type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    amount: {  type: DataTypes.INTEGER, allowNull: false },
     document: { type: DataTypes.STRING, allowNull: false },
     receiver_name: { type: DataTypes.STRING, allowNull: false },
     pix_key: { type: DataTypes.STRING, allowNull: false },
     pix_type: { type: DataTypes.STRING, allowNull: false },
     status: { type: DataTypes.STRING, allowNull: false},
     postbackUrl_gateway: { type: DataTypes.STRING, allowNull: false},    
-    postbackUrl: { type: DataTypes.STRING, allowNull: false}        
+    postbackUrl: { type: DataTypes.STRING, allowNull: false},
+    payment_date: {type: DataTypes.DATE, allowNull: true}
+
 }, {
     timestamps: true,
     underscored: true,

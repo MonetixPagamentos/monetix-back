@@ -10,15 +10,15 @@
   "nameCreditCard": "TESTE CREDIT CARD",
   "numbersInstallments": 1,
   "typePayment": "A_VISTA",
-  "payment_method": "CARD",
+  "payment_method": "PIX",
   "id_gateway": "1",
   "postback_gateway": "https://postabackurl.com/teste-api",
   "id_seller": 12,
   "link_origem": "https://teste.com",
-  "keyPix": "0564250902",
+  "keyPix": "05642500902",
   "merchantName": "Begins",
   "merchantCity": "INDAIAL",
-  "txid": "123123aishjsiodj123j1io2js",
+  "txid": "d86d9eb8-5228-4795-ae85-acb346c31880",
   "postback_url": "https://postabackurl.com/teste-api",
   "itens": [
     {

@@ -1,9 +1,9 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../connection');
+const SaldoGateway = require('./saldoGateway');
 
 const SubContaSeller = sequelize.define('subconta_seller', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    id_seller: { type: DataTypes.INTEGER, allowNull: false },
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },
     nome_fantasia: { type: DataTypes.STRING, allowNull: false },
     razao_social: { type: DataTypes.STRING, allowNull: false },
@@ -28,7 +28,6 @@ const SubContaSeller = sequelize.define('subconta_seller', {
     timestamps: true,
     underscored: true,
 });
-
 
 SubContaSeller.sync();
 

@@ -26,7 +26,6 @@ router.post('/cash-out', async (req, res) => {
         });                
         res.status(201).json({ message: 'Solicitação de saque criada com sucesso!'});
     
-        // chamar API de saque...
         console.log(whitdraw);
         
     } catch (error) {        

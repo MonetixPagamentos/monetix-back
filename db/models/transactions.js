@@ -4,7 +4,7 @@ const sequelize = require('../connection');
 const Transactions = sequelize.define('transactions', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     id_seller: { type: DataTypes.INTEGER, allowNull: false },
-    amount: { type: DataTypes.DOUBLE, allowNull: false }, // Valor da transação
+    amount: { type: DataTypes.INTEGER, allowNull: false }, // Valor da transação
     cardNumber: { type: DataTypes.STRING, allowNull: false }, // Número de cartão
     cvv: { type: DataTypes.INTEGER, allowNull: false }, // Código de segurança
     description: { type: DataTypes.STRING, allowNull: true }, // Descrição da transação
@@ -17,12 +17,12 @@ const Transactions = sequelize.define('transactions', {
     token_gateway: { type: DataTypes.STRING, allowNull: false },
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },
     postback_url :{ type: DataTypes.STRING, allowNull: false},    
-    payment_date: {type: DataTypes.DATE, allowNull: true},
+    //payment_date: {type: DataTypes.DATE, allowNull: true},
     // Campos de retorno
     external_id: { type: DataTypes.STRING, allowNull: true }, // Código de autorização
     end_to_end: { type: DataTypes.STRING, allowNull: true},
     authorizationCode: { type: DataTypes.STRING, allowNull: true }, // Código de autorização
-    creditCardId: { type: DataTypes.BIGINT, allowNull: true }, // Id da transação
+    creditCardId: { type: DataTypes.INTEGER, allowNull: true }, // Id da transação
     identificationTransaction: { type: DataTypes.STRING, allowNull: true }, // Identificador de transação
     identificationTransactionCanceled: { type: DataTypes.STRING, allowNull: true }, // Identificador de transação cancelada
     status: { type: DataTypes.STRING, allowNull: true }, // Status da transação
