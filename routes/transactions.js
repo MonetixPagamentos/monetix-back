@@ -195,7 +195,7 @@ router.post('/create-transaction', async (req, res) => {
 
     const tokenBearer = authHeader.split(' ')[1];
 
-    const tokenRecord = await Token.findOne({ where: { /*token: tokenBearer,*/ ativo: 1 } });
+    const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
 
     if (!tokenRecord) {
       return res.status(403).json({ message: "Autorização falhou!" });

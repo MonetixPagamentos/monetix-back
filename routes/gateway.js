@@ -1,7 +1,6 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid'); // Importando a função v4 do uuid
 const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
-const SaldoGateway = require('../db/models/saldoGateway');
 const TaxaGateway = require('../db/models/taxaGateway');
 const Token = require('../db/models/tokens');
 
@@ -39,13 +38,6 @@ router.post('/cadastro1/:userId', async (req, res) => {
       await Token.create({
         token: token_id,
         id_gateway: gateway.id
-      });
-
-      await SaldoGateway.create({
-        val_disponivel: 0,
-        val_reserva: 0,
-        id_gateway: gateway.id,
-        id_usuario: gateway.user_id
       });
 
       await TaxaGateway.create({

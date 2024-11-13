@@ -4,22 +4,46 @@ const Transactions = require('../db/models/transactions');
 const Withdraw = require('../db/models/withdraw');
 const SaldoGateway = require('../db/models/saldoGateway');
 const SubContaSeller = require('../db/models/subContaSeller');
-const { Op, Sequelize, fn, col } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
+const sequelize = require('../db/connection');
 
 router.get('/cash-in/:id_gateway/:start_date/:end_date', async (req, res) => {
     const { id_gateway, start_date, end_date } = req.params;
-    try {
 
+    try {
         if (!id_gateway) {
             return res.status(400).json({ error: 'id_gateway é obrigatório' });
         }
 
+        // Função para converter datas em formatos variados para o formato Date
+        const parseDate = (date) => {
+            // Verifica se a data está no formato dd-mm-aaaa
+            const isDayFirstFormat = /^\d{2}-\d{2}-\d{4}$/.test(date);
+            
+            if (isDayFirstFormat) {
+                const [day, month, year] = date.split('-');
+                return new Date(`${year}-${month}-${day}`);
+            }
+            
+            // Tenta criar um objeto Date caso a data já esteja em um formato Date string válido
+            const parsedDate = new Date(date);
+            
+            // Verifica se o objeto Date é válido
+            if (!isNaN(parsedDate)) {
+                return parsedDate;
+            } else {
+                throw new Error("Formato de data inválido");
+            }
+        };
+
+        const startDateFormatted = parseDate(start_date);
+        const endDateFormatted = parseDate(end_date);
 
         const transactions = await Transactions.findAll({
             where: {
                 id_gateway: id_gateway,
                 created_at: {
-                    [Op.between]: [new Date(start_date), new Date(end_date)]
+                    [Op.between]: [startDateFormatted, endDateFormatted]
                 }
             }
         });
@@ -66,22 +90,25 @@ router.get('/cash-out/:id_gateway', async (req, res) => {
             ]
         });
         
-        const saldoBloqueado = await SaldoGateway.findAll({
-            where: {id_gateway: id_gateway,
-                id_seller:
-                {
-                    [Op.notIn]: sellerIds 
+        const saldoBloqueadoResult = await SaldoGateway.findAll({
+            where: {
+                id_gateway: id_gateway,
+                id_seller: {
+                    [Op.notIn]: sellerIds
                 }
             }, 
             attributes: [
                 [fn('SUM', col('val_disponivel')), 'val_disponivel']
             ]
         });
+        
+        // Extrai o valor retornado e define como 0 caso seja nulo ou NaN
+        const saldoBloqueado = saldoBloqueadoResult[0]?.dataValues?.val_disponivel || 0;
 
         return res.status(200).json( {withdraw: withdraw, 
                                       saldoGateway: saldoGateway, 
                                       saldoReserva: saldoReserva, 
-                                      saldoBloqueado: saldoBloqueado});
+                                      saldoBloqueado: {val_disponivel: saldoBloqueado}});
 
     } catch (error) {
         console.error('Error fetching transactions:', error);
@@ -128,6 +155,56 @@ router.get('/display/:id_gateway/:dias', async (req, res) => {
                                       saldoCartao: saldoCartao,
                                       saldoPix: saldoPix});
 
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return res.status(500).json({ error: 'Erro ao buscar transações' });
+    }
+});
+
+router.get('/subconta/:id_gateway', async (req, res) => {
+    const { id_gateway } = req.params;
+    try {
+        if (!id_gateway) {
+            return res.status(400).json({ error: 'id_gateway é obrigatório' });
+        }
+
+        const subContasComSaldo = await sequelize.query(
+            `
+            SELECT SUM(b.val_disponivel) AS saldo, a.*
+            FROM subconta_sellers a
+            INNER JOIN saldo_gateways b ON b.id_seller = a.id
+            WHERE a.id_gateway = :id_gateway
+            GROUP BY a.id
+            `,
+            {
+                replacements: { id_gateway: id_gateway },
+                type: sequelize.QueryTypes.SELECT
+            }
+        );
+    
+        return res.status(200).json(subContasComSaldo);
+
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return res.status(500).json({ error: 'Erro ao buscar transações' });
+    }
+});
+
+router.get('/subconta-movements/:id_seller', async (req, res) => {
+    const { id_seller } = req.params;
+    try {
+        if (!id_seller) {
+            return res.status(400).json({ error: 'id_seller é obrigatório' });
+        }
+        
+        const transactions = await Transactions.findAll({
+            where: {
+                id_seller: id_seller
+            }
+        });
+
+
+        return res.status(200).json(transactions);
     } catch (error) {
         console.error('Error fetching transactions:', error);
         return res.status(500).json({ error: 'Erro ao buscar transações' });
