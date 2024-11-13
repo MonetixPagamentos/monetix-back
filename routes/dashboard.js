@@ -4,7 +4,7 @@ const Transactions = require('../db/models/transactions');
 const Withdraw = require('../db/models/withdraw');
 const SaldoGateway = require('../db/models/saldoGateway');
 const SubContaSeller = require('../db/models/subContaSeller');
-const { Op, fn, col } = require('sequelize');
+const {Sequelize, Op, fn, col } = require('sequelize');
 const sequelize = require('../db/connection');
 
 router.get('/cash-in/:id_gateway/:start_date/:end_date', async (req, res) => {
@@ -74,12 +74,15 @@ router.get('/cash-out/:id_gateway', async (req, res) => {
         const saldoGateway = await SaldoGateway.findOne({
             where: {
                 id_gateway: id_gateway,
-                id_seller:
-                {
-                    [Op.in]: sellerIds 
+                id_seller: {
+                    [Op.in]: sellerIds
                 }
-            }, attributes: [                
-                [fn('SUM', col('val_disponivel')), 'val_disponivel']
+            },
+            attributes: [
+                [
+                    Sequelize.literal('SUM(val_disponivel - val_saque)'),
+                    'val_disponivel'
+                ]
             ]
         });
 
@@ -170,7 +173,7 @@ router.get('/subconta/:id_gateway', async (req, res) => {
 
         const subContasComSaldo = await sequelize.query(
             `
-            SELECT SUM(b.val_disponivel) AS saldo, a.*
+            SELECT SUM(b.val_disponivel - b.val_saque) AS saldo, a.*
             FROM subconta_sellers a
             INNER JOIN saldo_gateways b ON b.id_seller = a.id
             WHERE a.id_gateway = :id_gateway

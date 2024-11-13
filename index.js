@@ -4,7 +4,7 @@ const gatewayRoutes = require('./routes/gateway');
 const userRoutes = require('./routes/user');
 const transactions = require('./routes/transactions');
 const documents = require('./routes/documents');
-const withdraw = require('./routes/whitdraw');
+const withdraw = require('./routes/withdraw');
 const subContaSeller = require('./routes/subContaSeller');
 const User = require('./db/models/user');
 const Gateway = require('./db/models/gateway');
@@ -15,7 +15,7 @@ const cors = require('cors');
 const app = express();
 
 app.use(cors());
-const port = 3001;
+const port = 3000;
 setupSwagger(app);
 
 app.use(express.json()); // Para analisar JSON

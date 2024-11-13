@@ -157,7 +157,7 @@ const enviarEmail = require('../components/email');
 router.post('/create-transaction', async (req, res) => {
 
  //const c = getTokenAstraPay();
- //const u = uuidv4();
+ const u = uuidv4();
 
   try {
     const {
