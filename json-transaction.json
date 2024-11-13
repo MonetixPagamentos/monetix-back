@@ -11,9 +11,9 @@
   "numbersInstallments": 1,
   "typePayment": "A_VISTA",
   "payment_method": "PIX",
-  "id_gateway": "1",
+  "id_gateway": 1,
   "postback_gateway": "https://postabackurl.com/teste-api",
-  "id_seller": 12,
+  "id_seller": 1,
   "link_origem": "https://teste.com",
   "keyPix": "05642500902",
   "merchantName": "Begins",
@@ -23,7 +23,7 @@
   "itens": [
     {
       "item_description": "TENIS NINENINE",
-      "item_amount": "1000",
+      "item_amount": "1001",
       "item_qtde": "1"
     },
     { 

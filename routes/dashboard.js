@@ -193,6 +193,30 @@ router.get('/subconta/:id_gateway', async (req, res) => {
     }
 });
 
+router.get('/consulta-antecipacao/:id_gateway', async (req, res) => {
+    const { id_gateway } = req.params;
+    try {
+        if (!id_gateway) {
+            return res.status(400).json({ error: 'id_gateway é obrigatório' });
+        }
+
+        const withdraw = await Withdraw.findAll({
+            where: { id_gateway: id_gateway, status: 'PENDING' }
+        });
+
+        if (withdraw.length === 0) {
+            return res.status(200).json({ message: 'Não existe transações pendentes' });
+        } else {
+            return res.status(200).json({ message: 'Existe transação pendente' });
+        }
+
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return res.status(500).json({ error: 'Erro ao buscar transações' });
+    }
+});
+
+
 router.get('/subconta-movements/:id_seller', async (req, res) => {
     const { id_seller } = req.params;
     try {
@@ -213,5 +237,7 @@ router.get('/subconta-movements/:id_seller', async (req, res) => {
         return res.status(500).json({ error: 'Erro ao buscar transações' });
     }
 });
+
+
 
 module.exports = router;

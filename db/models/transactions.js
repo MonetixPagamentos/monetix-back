@@ -5,14 +5,14 @@ const Transactions = sequelize.define('transactions', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     id_seller: { type: DataTypes.INTEGER, allowNull: false },
     amount: { type: DataTypes.INTEGER, allowNull: false }, // Valor da transação
-    cardNumber: { type: DataTypes.STRING, allowNull: false }, // Número de cartão
-    cvv: { type: DataTypes.INTEGER, allowNull: false }, // Código de segurança
+    cardNumber: { type: DataTypes.STRING, allowNull: true }, // Número de cartão
+    cvv: { type: DataTypes.INTEGER, allowNull: true }, // Código de segurança
     description: { type: DataTypes.STRING, allowNull: true }, // Descrição da transação
-    expirationDate: { type: DataTypes.STRING, allowNull: false }, // Data de validade do cartão
+    expirationDate: { type: DataTypes.STRING, allowNull: true }, // Data de validade do cartão
     idOriginTransaction: { type: DataTypes.STRING, allowNull: false }, // Identificação do fundo
-    nameCreditCard: { type: DataTypes.STRING, allowNull: false }, // Nome no cartão de crédito
-    numbersInstallments: { type: DataTypes.BIGINT, allowNull: false }, // Número de parcelas
-    typePayment: { type: DataTypes.STRING, allowNull: false }, // Forma de pagamento do cartão    
+    nameCreditCard: { type: DataTypes.STRING, allowNull: true }, // Nome no cartão de crédito
+    numbersInstallments: { type: DataTypes.BIGINT, allowNull: true }, // Número de parcelas
+    typePayment: { type: DataTypes.STRING, allowNull: true }, // Forma de pagamento do cartão    
     payment_method: { type: DataTypes.STRING, allowNull: false },
     token_gateway: { type: DataTypes.STRING, allowNull: false },
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },

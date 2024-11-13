@@ -22,8 +22,6 @@ const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
  *           schema:
  *             type: object
  *             properties:
- *               id_seller:
- *                 type: integer
  *               nome_fantasia:
  *                 type: string
  *               razao_social:

@@ -15,7 +15,7 @@ const cors = require('cors');
 const app = express();
 
 app.use(cors());
-const port = 3000;
+const port = 3001;
 setupSwagger(app);
 
 app.use(express.json()); // Para analisar JSON
@@ -82,6 +82,7 @@ initDb().then(() => {
           status_documento: status_documento,
           sing_up_step: sing_up_step
         });
+
 
       } else {
         res.status(404).json({message: "usuario não encontrado"});

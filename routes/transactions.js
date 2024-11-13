@@ -264,7 +264,6 @@ router.post('/create-transaction', async (req, res) => {
         amount,
         description,
         idOriginTransaction,
-        identificationTransaction: data.identificationTransaction,
         payment_method,
         token_gateway: tokenRecord.token,
         id_gateway: tokenRecord.id_gateway,
@@ -273,7 +272,7 @@ router.post('/create-transaction', async (req, res) => {
         end_to_end: uuiD,
         link_origem,
         postback_url,
-        status: "pending"
+        status: "PENDING"
       });
     } else {
       return res.status(400).json({ error: "Método de pagamento inválido" });
@@ -289,15 +288,15 @@ router.post('/create-transaction', async (req, res) => {
       });
     });
 
- 
-    if (transaction && data.status == "PAID") {
-      const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, data.amount, data.numbersInstallments);
-      if (refreshSaldo) {
-        updateBalance(transaction.id);
+  /*
+      if (transaction && data.status == "PAID") {
+        const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, data.amount, data.numbersInstallments);
+        if (refreshSaldo) {
+          updateBalance(transaction.id);
+        }
       }
-    }
-
-    res.status(201).json(transaction);
+  */
+    res.status(201).json(data);
 
   } catch (error) {
     console.error("Erro ao criar transação:", error);
