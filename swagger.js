@@ -11,13 +11,13 @@ const swaggerOptions = {
         },
         servers: [
             {
-                url: 'https://api-sandbox.monetixpagamentos.com', // Altere para a URL da sua API
+                url: process.env.API_BASE_URL, // Altere para a URL da sua API
             },
         ],
         components: {
             securitySchemes: {
                 bearerAuth: {
-                    type: 'http',
+                    type: 'https',
                     scheme: 'bearer',
                     bearerFormat: 'JWT',
                 },
@@ -30,7 +30,7 @@ const swaggerOptions = {
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
 const setupSwagger = (app) => {
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+    app.use('/documentacao-monetix', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 };
 
 module.exports = setupSwagger;
