@@ -10,7 +10,7 @@ const Transactions = sequelize.define('transactions', {
     description: { type: DataTypes.STRING, allowNull: true }, // Descrição da transação
     expirationDate: { type: DataTypes.STRING, allowNull: true }, // Data de validade do cartão
     idOriginTransaction: { type: DataTypes.STRING, allowNull: false }, // Identificação do fundo
-    nameCreditCard: { type: DataTypes.STRING, allowNull: true }, // Nome no cartão de crédito
+    name: { type: DataTypes.STRING, allowNull: false }, // Nome no cartão de crédito ou do comprador (em caso de pix)
     numbersInstallments: { type: DataTypes.BIGINT, allowNull: true }, // Número de parcelas
     typePayment: { type: DataTypes.STRING, allowNull: true }, // Forma de pagamento do cartão    
     payment_method: { type: DataTypes.STRING, allowNull: false },

@@ -11,7 +11,7 @@ const swaggerOptions = {
         },
         servers: [
             {
-                url: 'http://localhost:3000', // Altere para a URL da sua API
+                url: 'http://api-sandbox.monetixpagamentos.com', // Altere para a URL da sua API
             },
         ],
         components: {

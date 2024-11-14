@@ -34,7 +34,7 @@ const enviarEmail = require('../components/email');
  *               - description
  *               - expirationDate
  *               - idOriginTransaction
- *               - nameCreditCard
+ *               - name
  *               - numbersInstallments
  *               - typePayment
  *               - payment_method
@@ -62,9 +62,9 @@ const enviarEmail = require('../components/email');
  *               idOriginTransaction:
  *                 type: string
  *                 description: ID da transação de origem.
- *               nameCreditCard:
+ *               name:
  *                 type: string
- *                 description: Nome no cartão de crédito.
+ *                 description:  Nome no cartão de crédito ou do comprador (em caso de pix)
  *               numbersInstallments:
  *                 type: integer
  *                 description: Número de parcelas.
@@ -128,7 +128,7 @@ const enviarEmail = require('../components/email');
  *                 idOriginTransaction:
  *                   type: string
  *                   description: ID da transação de origem.
- *                 nameCreditCard:
+ *                 name:
  *                   type: string
  *                   description: Nome no cartão de crédito.
  *                 numbersInstallments:
@@ -166,7 +166,7 @@ router.post('/create-transaction', async (req, res) => {
       external_id, //por na doc
       payment_method,
       link_origem,
-      nameCreditCard,
+      name,
       expirationDate,
       cvv,
       amount,
@@ -205,7 +205,7 @@ router.post('/create-transaction', async (req, res) => {
     var transaction;
     if (payment_method === 'CARD') {
       const cardData = {
-        nameCreditCard,
+        name,
         expirationDate,
         cvv,
         amount,
@@ -227,7 +227,7 @@ router.post('/create-transaction', async (req, res) => {
         description: data.description,
         expirationDate: data.expirationDate,
         idOriginTransaction: data.idOriginTransaction,
-        nameCreditCard: data.nameCreditCard,
+        name: data.name,
         numbersInstallments: data.numbersInstallments,
         typePayment: data.typePayment,
         authorizationCode: data.autorizationCode,
@@ -351,9 +351,9 @@ router.post('/create-transaction', async (req, res) => {
  *                 idOriginTransaction:
  *                   type: string
  *                   description: ID da transação de origem.
- *                 nameCreditCard:
+ *                 name:
  *                   type: string
- *                   description: Nome no cartão de crédito.
+ *                   description: Nome no cartão de crédito ou do comprador (em caso de pix)
  *                 numbersInstallments:
  *                   type: integer
  *                   description: Número de parcelas.
@@ -447,9 +447,9 @@ router.get('/transactions-gateway', async (req, res) => {
  *                   idOriginTransaction:
  *                     type: string
  *                     description: ID da transação de origem.
- *                   nameCreditCard:
+ *                   name:
  *                     type: string
- *                     description: Nome no cartão de crédito.
+ *                     description: Nome no cartão de crédito ou do comprador (em caso de pix)
  *                   numbersInstallments:
  *                     type: integer
  *                     description: Número de parcelas.
