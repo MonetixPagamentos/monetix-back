@@ -93,3 +93,24 @@ router.delete('/excluir-user/:id', async (req, res) => {
 });
 
 module.exports = router;
+
+
+/*
+91fb3-91651
+394d3-6398b
+5ee7f-a4bfc
+d2490-40ad2
+c7748-428fd
+5b129-da5f1
+65449-a80f6
+5dd7a-1198b
+9888c-0af65
+c9162-f99b5
+9d217-e71df
+48fdf-3d3f3
+35849-4414c
+a4b1a-0a06c
+f0c0a-323ec
+6f224-226d8
+
+*/
