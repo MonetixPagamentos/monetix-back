@@ -199,4 +199,22 @@ router.post('/create-subconta', async (req, res) => {
     }
 });
 
+router.post('/update-subconta', async (req, res) => {
+    const { id_subconta, status } = req.body;
+
+    try {
+        const [rows] = await SubContaSeller.update(
+            { status: status },
+            { where: { id: id_subconta } }
+        );
+
+        if (rows > 0) {
+            return res.status(200).json({ message: "Subconta status updated successfully" });
+        } else {
+            return res.status(404).json({ message: "Subconta not found or no update was made" });
+        }
+    } catch (error) {
+        return res.status(500).json({ error: error.message || "Failed to update subconta status" });
+    }
+});
 module.exports = router;

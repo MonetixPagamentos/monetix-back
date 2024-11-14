@@ -72,7 +72,6 @@ router.post('/cadastro2', async (req, res) => {
     mother_name
   } = req.body;
 
-
   try {
     const updated = await Gateway.update(
       {

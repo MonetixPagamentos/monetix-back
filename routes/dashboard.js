@@ -238,6 +238,4 @@ router.get('/subconta-movements/:id_seller', async (req, res) => {
     }
 });
 
-
-
 module.exports = router;

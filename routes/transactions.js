@@ -156,8 +156,8 @@ const enviarEmail = require('../components/email');
 
 router.post('/create-transaction', async (req, res) => {
 
- //const c = getTokenAstraPay();
- const u = uuidv4();
+  //const c = getTokenAstraPay();
+  //const u = uuidv4();
 
   try {
     const {
@@ -254,7 +254,7 @@ router.post('/create-transaction', async (req, res) => {
         merchantCity,
         amount: amount
       }
-      
+
       var uuiD = uuidv4();
       data = await makePixPayment(await getTokenAstraPay(), uuiD, pixData);
 
@@ -270,6 +270,7 @@ router.post('/create-transaction', async (req, res) => {
         id_seller,
         external_id,
         end_to_end: uuiD,
+        txid: uuiD,
         link_origem,
         postback_url,
         status: "PENDING"
@@ -288,14 +289,14 @@ router.post('/create-transaction', async (req, res) => {
       });
     });
 
-  /*
-      if (transaction && data.status == "PAID") {
-        const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, data.amount, data.numbersInstallments);
-        if (refreshSaldo) {
-          updateBalance(transaction.id);
-        }
+
+    if (transaction && data.status == "PAID") {
+      const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, data.amount, data.numbersInstallments);
+      if (refreshSaldo) {
+        updateBalance(transaction.id);
       }
-  */
+    }
+
     res.status(201).json(data);
 
   } catch (error) {

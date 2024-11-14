@@ -16,7 +16,9 @@ const Transactions = sequelize.define('transactions', {
     payment_method: { type: DataTypes.STRING, allowNull: false },
     token_gateway: { type: DataTypes.STRING, allowNull: false },
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },
-    postback_url :{ type: DataTypes.STRING, allowNull: false},    
+    postback_url :{ type: DataTypes.STRING, allowNull: false},
+    integridade: { type: DataTypes.INTEGER, default: 0 }, 
+
     //payment_date: {type: DataTypes.DATE, allowNull: true},
     // Campos de retorno
     external_id: { type: DataTypes.STRING, allowNull: true }, // Código de autorização

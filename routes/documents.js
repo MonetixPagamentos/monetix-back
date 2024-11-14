@@ -23,6 +23,17 @@ const upload = multer({
 
 router.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+router.get('/download/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filepath = path.join(__dirname.replace('\\routes',''), 'uploads', filename);
+    res.download(filepath, (err) => {
+      if (err) {
+        console.error('Erro ao enviar o arquivo:', err);
+        res.status(404).send('Arquivo não encontrado.');
+      }
+    });
+  });
+
 router.post('/documentos-anexos', upload.fields([
     { name: 'file0', maxCount: 1 }, //contratoSocial
     { name: 'file1', maxCount: 1 }, // frente
@@ -40,10 +51,10 @@ router.post('/documentos-anexos', upload.fields([
         return res.status(400).send('Todos os arquivos são obrigatórios!');
     }
     
-    const contratoSocialPath = req.files.file0[0].path;
-    const documentoFrentePath = req.files.file1[0].path;
-    const documentoVersoPath = req.files.file2[0].path;
-    const selfiePath = req.files.file3[0].path;
+    const contratoSocialPath = req.files.file0[0];
+    const documentoFrentePath = req.files.file1[0];
+    const documentoVersoPath = req.files.file2[0];
+    const selfiePath = req.files.file3[0];
 
     try {        
         const existingDocument = await Documents.findOne({ where: { id_gateway: idGateway } });
@@ -107,6 +118,5 @@ router.post('/novo-documento', async (req, res) => {
         res.status(500).json({ error: 'Erro ao inserir dados do usuário.' });
     }
 });
-
 
 module.exports = router;

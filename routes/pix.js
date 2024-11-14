@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Transactions = require('../db/models/transactions');
 const SaldoGateway = require('../db/models/saldoGateway');
-
+const TaxaGateway = require('../db/models/taxaGateway');
 
 router.post('/postback-pix-payment', async (req, res) => {
     const body = {
@@ -17,6 +17,7 @@ router.post('/postback-pix-payment', async (req, res) => {
     } = req.body;
 
     const transaction = await Transactions.findOne({ end_to_end: txid });
+    console.log('PAGOOOOU');
 
     await Transactions.update(
         {
@@ -39,7 +40,7 @@ router.post('/postback-pix-payment', async (req, res) => {
         });
 
         if (response && response.ok) {
-            const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, transaction.amount);
+            const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, transaction.id_seller, transaction.amount);
 
             if (refreshSaldo) {
                 updateBalance(transaction.id);
@@ -60,7 +61,7 @@ async function updateBalance(id_transaction) {
     }
 }
 
-async function refreshSaldoGateway(id_gateway, valor) {
+async function refreshSaldoGateway(id_gateway, id_seller, valor) {
     try {
 
         const taxaGateway = await TaxaGateway.findOne({ id_gateway: id_gateway });
@@ -79,12 +80,15 @@ async function refreshSaldoGateway(id_gateway, valor) {
                 val_reserva: Sequelize.literal(`val_reserva + ${valReserve}`)
             },
             {
-                where: { id_gateway: id_gateway }
+                where: { id_gateway: id_gateway, id_seller: id_seller }
             }
         );
         console.log("Campos atualizados com sucesso.");
         return true;
     } catch (error) {
         console.error("Erro ao atualizar os campos:", error);
-    }
+    }    
 } 
+
+
+module.exports = router;

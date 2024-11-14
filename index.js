@@ -10,12 +10,16 @@ const User = require('./db/models/user');
 const Gateway = require('./db/models/gateway');
 const Documents = require('./db/models/documents');
 const dashboard = require('./routes/dashboard');
+const painelAdm = require('./routes/painelAdm');
+const email = require('./routes/email');
+const pix = require('./routes/pix');
 const setupSwagger = require('./swagger'); 
+
 const cors = require('cors');
 const app = express();
 
 app.use(cors());
-const port = 3001;
+const port = 3000;
 setupSwagger(app);
 
 app.use(express.json()); // Para analisar JSON
@@ -30,9 +34,11 @@ initDb().then(() => {
   app.use('/withdraw', withdraw);
   app.use('/seller', subContaSeller);
   app.use('/dashboard', dashboard);
-
-  //app.use('/pix', pix);
+  app.use('/painel', painelAdm);
+  app.use('/email', email);
+  app.use('/pix', pix);
   
+
   app.get('/', (req, res) => {
     res.send('API MONETIX :D');
   });
@@ -50,6 +56,10 @@ initDb().then(() => {
       var sing_up_step = null;
 
       const user = await User.findOne({ where: { email: email } });
+
+      if(user && user.status == 0){
+        return res.status(403).json({message: "Usuario inativo!"});
+      }
 
       if (user && senha === user.password) {
         console.log('Usuário encontrado e senha válida:', user);
@@ -85,7 +95,7 @@ initDb().then(() => {
 
 
       } else {
-        res.status(404).json({message: "usuario não encontrado"});
+        return res.status(404).json({message: "usuario não encontrado"});
       }
     } catch (error) {
       console.log(error);

@@ -34,6 +34,11 @@ const User = sequelize.define('user', {
     type: DataTypes.INTEGER,
     allowNull: true,
     defaultValue: 0
+  }, 
+   verificacao_email: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
   }
 }, {
   timestamps: true, // Isso gerencia createdAt e updatedAt automaticamente
