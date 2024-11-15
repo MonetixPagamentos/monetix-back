@@ -10,8 +10,8 @@ if (process.env.HOMOLOG == 0) { //homolog
     dialect: 'mysql',
   });
 } else if (process.env.HOMOLOG == 1) { // sandobox
-  sequelize = new Sequelize('defaultdb', 'doadmin', 'AVNS_EZN9VXNMVHMh08FZ-CS', {
-    host: 'monetixdb-do-user-18316313-0.i.db.ondigitalocean.com',
+  sequelize = new Sequelize('defaultdb', 'doadmin', 'AVNS_X5grNxqGgswGOQFZqqQ', {
+    host: 'db-mysql-nyc1-39828-do-user-18325952-0.f.db.ondigitalocean.com',
     dialect: 'mysql',
     port: 25060,
     dialectOptions: {

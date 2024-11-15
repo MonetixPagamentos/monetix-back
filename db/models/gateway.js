@@ -37,6 +37,16 @@ const Gateway = sequelize.define('gateway', {
   underscored: true,
 });
 
+(async () => {
+  try {
+      // Sincroniza a tabela com o banco de dados
+      await Gateway.sync({ alter: true });
+      console.log(`Tabela "${Gateway.name}" sincronizada com sucesso, novas colunas foram adicionadas.`);
+  } catch (error) {
+      console.error(`Erro ao sincronizar a tabela "${Gateway.name}":`, error);
+  } 
+})()
+
 // Sincroniza o modelo com o banco de dados
 Gateway.sync();
 

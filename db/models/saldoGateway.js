@@ -1,6 +1,5 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../connection');
-const SubContaSeller = require('./subContaSeller');
 
 const SaldoGateway = sequelize.define('saldoGateway', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
@@ -14,6 +13,16 @@ const SaldoGateway = sequelize.define('saldoGateway', {
     timestamps: true, 
     underscored: true, 
 });
+
+(async () => {
+    try {
+        // Sincroniza a tabela com o banco de dados
+        await SaldoGateway.sync({ alter: true });
+        console.log(`Tabela "${SaldoGateway.name}" sincronizada com sucesso, novas colunas foram adicionadas.`);
+    } catch (error) {
+        console.error(`Erro ao sincronizar a tabela "${SaldoGateway.name}":`, error);
+    } 
+  })()
 
 SaldoGateway.sync();
 

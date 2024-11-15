@@ -29,39 +29,8 @@ const initDb = async () => {
     await Handler.sync();
     await TransactionItem.sync();
     
-    await handlerDatabase();    
-
   } catch (err) {
     console.error('Erro ao inicializar o banco de dados:', err);
-  }
-};
-
-const handlerDatabase = async () => {
-  try {
-    const exiteHandler = await Handler.findOne({where:{executed: 1}});  
-    var updated = false;
-
-    if(!exiteHandler)
-      await Handler.create({version: 0, executed: 1});
-    
-    var maxHandler = await Handler.max('version',{where:{executed: 1}});  
-    const handler  = await Handler.findOne({where:{version: maxHandler}});  
-
-    if(handler.version <= 0 && handler.executed == 0){
-       // COMANDO A EXECUTAR NA BASE
-       updated = true;
-       newVersion = handler.version + 1;
-    }  
-
-    if(updated){
-      var newVersion = 0;
-      await Handler.create({
-         version: 99
-      });
-    }
-    
-  } catch (err) {
-    console.error('Erro ao alterar tabela clientes:', err);
   }
 };
 

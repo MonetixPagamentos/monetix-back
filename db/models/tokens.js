@@ -16,6 +16,15 @@ const Token = sequelize.define('token', {
   underscored: true 
 });
 
+(async () => {
+  try {
+      // Sincroniza a tabela com o banco de dados
+      await Token.sync({ alter: true });
+      console.log(`Tabela "${Token.name}" sincronizada com sucesso, novas colunas foram adicionadas.`);
+  } catch (error) {
+      console.error(`Erro ao sincronizar a tabela "${Token.name}":`, error);
+  } 
+})()
 // Sincroniza o modelo com o banco de dados
 Token.sync();
 
