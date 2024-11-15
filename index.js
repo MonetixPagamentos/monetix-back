@@ -90,7 +90,9 @@ initDb().then(() => {
           status_gateway: status_gateway,
           existe_documento: existe_documento,
           status_documento: status_documento,
-          sing_up_step: sing_up_step
+          sing_up_step: sing_up_step,
+          name: user.name,
+          phone: user.phone
         });
 
 
