@@ -99,10 +99,10 @@ const enviarEmail = require('../components/email');
  *                       type: string
  *                       description: Descrição da venda.     
  *                     item_amount:
- *                       type: string
+ *                       type: integer
  *                       description: Valor da venda.
  *                     item_qtde:
- *                       type: string
+ *                       type: integer
  *                       description: Quantidade da venda. 
  *     responses:
  *       201:
@@ -158,7 +158,7 @@ const enviarEmail = require('../components/email');
  * @swagger
  * components:
  *   securitySchemes:
- *     BearerAuth:
+ *     bearerAuth:
  *       type: http
  *       scheme: bearer
  *       bearerFormat: JWT
@@ -415,7 +415,7 @@ router.get('/transactions-gateway', async (req, res) => {
 /**
  * @swagger
  * /transactions-id:
-*     get:
+ *   get:
  *     summary: Obtém todas as transações por ID de origem
  *     description: Este endpoint permite buscar todas as transações associadas a um ID de origem específico, fornecendo o ID como parâmetro de consulta.
  *     tags:
