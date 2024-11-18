@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 100 * 1922 * 1922 }
+    //limits: { fileSize: 100 * 1922 * 1922 }
 });
 
 router.use('/uploads', express.static(path.join(__dirname, 'uploads')));
