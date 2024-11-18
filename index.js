@@ -19,7 +19,16 @@ require('dotenv').config();
 const cors = require('cors');
 const app = express();
 
-app.use(cors());
+// Configuração para aceitar todas as origens
+const corsOptions = {
+  origin: '*', // Permite todas as origens
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Permite todos os métodos HTTP
+  allowedHeaders: 'Content-Type, Authorization', // Permite esses cabeçalhos
+};
+
+// Aplica o CORS com as opções configuradas
+app.use(cors(corsOptions));
+
 const port = 3000;
 setupSwagger(app);
 
