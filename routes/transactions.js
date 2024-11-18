@@ -215,7 +215,7 @@ router.post('/create-transaction', async (req, res) => {
     var transaction;
     if (payment_method === 'CARD') {
       const cardData = {
-        name,
+        nameCreditCard: name,
         expirationDate,
         cvv,
         amount,
@@ -237,7 +237,7 @@ router.post('/create-transaction', async (req, res) => {
         description: data.description,
         expirationDate: data.expirationDate,
         idOriginTransaction: data.idOriginTransaction,
-        name: data.name,
+        name: data.nameCreditCard,
         numbersInstallments: data.numbersInstallments,
         typePayment: data.typePayment,
         authorizationCode: data.autorizationCode,

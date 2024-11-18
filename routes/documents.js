@@ -40,8 +40,8 @@ router.post('/documentos-anexos', upload.fields([
     { name: 'file2', maxCount: 1 }, // verso
     { name: 'file3', maxCount: 1 } //selfie
 ]), async (req, res) => {
-    const idUser = req.body.id_user;
-    const idGateway = req.body.id_gateway;
+    const idUser = req.body.idUser;
+    const idGateway = req.body.idGateway;
 
     if (!idGateway) {
         return res.status(400).send('ID da empresa é obrigatório!');
@@ -51,10 +51,10 @@ router.post('/documentos-anexos', upload.fields([
         return res.status(400).send('Todos os arquivos são obrigatórios!');
     }
     
-    const contratoSocialPath = req.files.file0[0];
-    const documentoFrentePath = req.files.file1[0];
-    const documentoVersoPath = req.files.file2[0];
-    const selfiePath = req.files.file3[0];
+    const contratoSocialPath = req.files.file0[0].filename;
+    const documentoFrentePath = req.files.file1[0].filename;
+    const documentoVersoPath = req.files.file2[0].filename;
+    const selfiePath = req.files.file3[0].filename;
 
     try {        
         const existingDocument = await Documents.findOne({ where: { id_gateway: idGateway } });

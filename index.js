@@ -13,9 +13,11 @@ const dashboard = require('./routes/dashboard');
 const painelAdm = require('./routes/painelAdm');
 const email = require('./routes/email');
 const pix = require('./routes/pix');
+const userAdm = require('./db/models/userAdm');
 const setupSwagger = require('./swagger'); 
 
 const cors = require('cors');
+
 const app = express();
 
 app.use(cors());
@@ -97,6 +99,27 @@ initDb().then(() => {
 
 
       } else {
+        return res.status(404).json({message: "usuario não encontrado"});
+      }
+    } catch (error) {
+      console.log(error);
+    }
+
+  });
+
+  app.post('/login-adm', async (req, res) => {
+    try {
+      const { email, senha } = req.body;
+      const UserAdm = await userAdm.findOne({ where: { email: email } });
+
+      if(!UserAdm){
+        return res.status(403).json({message: "Usuario não existe!"});
+      }
+
+      if (UserAdm && senha === UserAdm.password) {
+        res.status(201).json({id: UserAdm.id, name: UserAdm.name});
+
+        }else {
         return res.status(404).json({message: "usuario não encontrado"});
       }
     } catch (error) {

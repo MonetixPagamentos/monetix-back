@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const sequelize = require('../db/connection');
-const { Sequelize } = require('sequelize');
+const { Sequelize, where } = require('sequelize');
 const Gateway = require('../db/models/gateway');
 const Documents = require('../db/models/documents');
 const TaxaGateway = require('../db/models/documents');
@@ -11,21 +11,21 @@ const Transactions = require('../db/models/transactions');
 const { v4: uuidv4 } = require('uuid');
 const functions = require('../components/functions');
 const SaldoGateway = require('../db/models/saldoGateway');
+const Token = require('../db/models/tokens');
 
 router.get('/list-gateway', async (req, res) => {
     try {
         const gateway = await sequelize.query(
             `
-            SELECT 
-                g.id, 
-                g.gateway_name, 
-                g.document_gateway, 
-                g.status,
-                SUM(sg.val_disponivel) AS saldo
-            FROM gateways g
-            INNER JOIN saldo_gateways sg ON sg.id_gateway = g.id
-            GROUP BY g.id, g.gateway_name, g.document_gateway, g.status
-            `,
+            SELECT g.id, 
+            g.gateway_name, 
+            g.document_gateway, 
+            g.status,
+            COALESCE(SUM(sg.val_disponivel), 0) AS saldo
+            FROM defaultdb.gateways g
+            LEFT JOIN defaultdb.saldo_gateways sg ON sg.id_gateway = g.id
+            GROUP BY g.id, g.gateway_name, g.document_gateway
+                    `,
             {
                 type: sequelize.QueryTypes.SELECT
             }
@@ -191,6 +191,9 @@ router.post('/update-status-gateway', async (req, res) => {
             { where: { id: id_gateway } }
         );
 
+        // habilita / desabilita o token
+        await Token.update({ativo: status}, {where: {id_gateway: id_gateway}});
+
         if (gateway[0] === 0) {
             return res.status(404).json({ error: 'Gateway não encontrado' });
         }
@@ -284,6 +287,42 @@ async function refundPayment(idTransaction) {
 
     return false;
 }
+
+
+router.get('/withdraws-all', async (req, res) => {
+    
+    try {       
+        const withdraws = await sequelize.query(
+            `
+              select 
+                w.id,
+                w.amount, 
+                w.status,
+                w.pix_key,
+                w.pix_type,
+                w.created_at,
+                w.payment_date,
+                w.receiver_name,
+                w.document,
+                g.gateway_name 
+            from withdraws w 
+            inner join gateways g on g.id = w.id_gateway 
+            order by w.created_at 
+                        
+            `,
+            {
+               
+                type: sequelize.QueryTypes.SELECT
+            }
+        );
+
+        return res.status(200).json(withdraws);
+
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return res.status(500).json({ error: 'Erro ao buscar transações' });
+    }
+});
 
 // async function refundSaldoGatewayCard(id_gateway, id_seller, idTransaction, valor, numbersInstallments) {
 //     try {

@@ -41,6 +41,23 @@ const Transactions = sequelize.define('transactions', {
 }, {
     timestamps: true, // Isso gerencia createdAt e updatedAt automaticamente
     underscored: true,
+    indexes: [
+        {
+            fields: ['status'],
+        },
+        {
+            fields: ['created_at'], 
+        },
+        {
+            fields: ['id_gateway'], 
+        },
+        {
+            fields: ['payment_method'], 
+        },
+        {
+            fields: ['status', 'created_at', 'id_gateway', 'payment_method'], 
+        }
+    ]
 });
 
 (async () => {

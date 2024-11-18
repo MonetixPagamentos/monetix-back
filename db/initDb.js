@@ -10,6 +10,7 @@ const SubContaSeller = require('./models/subContaSeller');
 const Handler = require('./models/handler');
 const Withdraw = require('./models/withdraw');
 const TransactionItem = require('./models/transactionItem');
+const UserAdm = require('./models/userAdm');
 const { version } = require('@babel/core');
 
 const initDb = async () => {
@@ -28,6 +29,7 @@ const initDb = async () => {
     await SubContaSeller.sync();
     await Handler.sync();
     await TransactionItem.sync();
+    await UserAdm.sync();
     
   } catch (err) {
     console.error('Erro ao inicializar o banco de dados:', err);
