@@ -45,6 +45,16 @@ const User = sequelize.define('user', {
   underscored: true,
 });
 
+(async () => {
+  try {
+      // Sincroniza a tabela com o banco de dados
+      await User.sync({ alter: true });
+      console.log(`Tabela "${User.name}" sincronizada com sucesso, novas colunas foram adicionadas.`);
+  } catch (error) {
+      console.error(`Erro ao sincronizar a tabela "${User.name}":`, error);
+  } 
+})()
+
 // Sincroniza o modelo com o banco de dados
 User.sync();
 

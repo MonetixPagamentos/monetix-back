@@ -33,6 +33,8 @@ router.post('/cadastro1/:userId', async (req, res) => {
       token_id,
     });
 
+    console.log(business_opening_date);
+
     if (gateway && gateway.id) {
 
       await Token.create({

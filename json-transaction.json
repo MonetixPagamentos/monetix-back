@@ -10,7 +10,7 @@
   "nameCreditCard": "TESTE CREDIT CARD",
   "numbersInstallments": 1,
   "typePayment": "A_VISTA",
-  "payment_method": "PIX",
+  "payment_method": "CARD",
   "id_gateway": 1,
   "postback_gateway": "https://postabackurl.com/teste-api",
   "id_seller": 1,

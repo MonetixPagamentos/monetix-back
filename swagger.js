@@ -23,9 +23,18 @@ const swaggerOptions = {
                 },
             },
         },
+        security: [
+            {
+                bearerAuth: [],
+            },
+        ],
+        
     },
+    
     apis: ['./routes/*.js'], // Caminho para os arquivos que contêm as anotações da documentação
 };
+
+
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 

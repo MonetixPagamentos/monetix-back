@@ -21,7 +21,7 @@ const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
+ *             required:
  *               nome_fantasia:
  *                 type: string
  *               razao_social:

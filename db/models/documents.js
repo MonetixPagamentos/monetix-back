@@ -20,6 +20,16 @@ const Documents = sequelize.define('documents', {
   timestamps: true, 
   underscored: true,
 });
+
+(async () => {
+  try {
+      // Sincroniza a tabela com o banco de dados
+      await Documents.sync({ alter: true });
+      console.log(`Tabela "${Documents.name}" sincronizada com sucesso, novas colunas foram adicionadas.`);
+  } catch (error) {
+      console.error(`Erro ao sincronizar a tabela "${Documents.name}":`, error);
+  } 
+})();
   
   // Sincroniza o modelo com o banco de dados
   Documents.sync();

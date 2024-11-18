@@ -27,6 +27,16 @@ const TaxaGateway = sequelize.define('taxa_gateway', {
     underscored: true, // Utiliza o padrão de nomenclatura com underscores
 });
 
+(async () => {
+    try {
+        // Sincroniza a tabela com o banco de dados
+        await TaxaGateway.sync({ alter: true });
+        console.log(`Tabela "${TaxaGateway.name}" sincronizada com sucesso, novas colunas foram adicionadas.`);
+    } catch (error) {
+        console.error(`Erro ao sincronizar a tabela "${TaxaGateway.name}":`, error);
+    } 
+  })()
+
 // Sincroniza o modelo com o banco de dados
 TaxaGateway.sync();
 

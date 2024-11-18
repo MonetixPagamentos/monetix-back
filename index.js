@@ -14,6 +14,7 @@ const painelAdm = require('./routes/painelAdm');
 const email = require('./routes/email');
 const pix = require('./routes/pix');
 const setupSwagger = require('./swagger'); 
+require('dotenv').config();
 
 const cors = require('cors');
 const app = express();
@@ -40,7 +41,7 @@ initDb().then(() => {
   
 
   app.get('/', (req, res) => {
-    res.send('API MONETIX :D');
+    res.send('API MONETIX :)');
   });
 
   app.post('/login', async (req, res) => {
@@ -90,7 +91,9 @@ initDb().then(() => {
           status_gateway: status_gateway,
           existe_documento: existe_documento,
           status_documento: status_documento,
-          sing_up_step: sing_up_step
+          sing_up_step: sing_up_step,
+          name: user.name,
+          phone: user.phone
         });
 
 
@@ -104,7 +107,7 @@ initDb().then(() => {
   });
 
   app.listen(port, () => {
-    console.log(`Servidor rodando em http://localhost:${port}`);
+    console.log(`Servidor rodando em http://${process.env.API_BASE_URL$}`);
   });
 
 

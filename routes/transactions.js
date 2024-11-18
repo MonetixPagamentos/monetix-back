@@ -154,6 +154,16 @@ const enviarEmail = require('../components/email');
  *         description: Erro ao criar transação.
  */
 
+/**
+ * @swagger
+ * components:
+ *   securitySchemes:
+ *     BearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ */
+
 router.post('/create-transaction', async (req, res) => {
 
   //const c = getTokenAstraPay();
@@ -314,6 +324,8 @@ router.post('/create-transaction', async (req, res) => {
  *     description: Este endpoint permite buscar transações associadas a um gateway específico, fornecendo o ID do gateway como parâmetro de consulta.
  *     tags:
  *       - Transaction
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: query
  *         name: id_gateway
@@ -403,7 +415,7 @@ router.get('/transactions-gateway', async (req, res) => {
 /**
  * @swagger
  * /transactions-id:
- *   get:
+*     get:
  *     summary: Obtém todas as transações por ID de origem
  *     description: Este endpoint permite buscar todas as transações associadas a um ID de origem específico, fornecendo o ID como parâmetro de consulta.
  *     tags:

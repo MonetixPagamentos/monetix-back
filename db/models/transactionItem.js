@@ -13,5 +13,15 @@ const TransactionItem = sequelize.define('transaction_item', {
     underscored: true,
 });
 
+(async () => {
+    try {
+        // Sincroniza a tabela com o banco de dados
+        await TransactionItem.sync({ alter: true });
+        console.log(`Tabela "${TransactionItem.name}" sincronizada com sucesso, novas colunas foram adicionadas.`);
+    } catch (error) {
+        console.error(`Erro ao sincronizar a tabela "${TransactionItem.name}":`, error);
+    } 
+  })()
+
 TransactionItem.sync();
 module.exports = TransactionItem;

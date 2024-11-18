@@ -23,6 +23,16 @@ const Withdraw = sequelize.define('withdraw', {
     underscored: true,
 });
 
+(async () => {
+    try {
+        // Sincroniza a tabela com o banco de dados
+        await Withdraw.sync({ alter: true });
+        console.log(`Tabela "${Withdraw.name}" sincronizada com sucesso, novas colunas foram adicionadas.`);
+    } catch (error) {
+        console.error(`Erro ao sincronizar a tabela "${Withdraw.name}":`, error);
+    } 
+  })()
+
 Withdraw.sync();
 
 module.exports = Withdraw;
