@@ -168,6 +168,44 @@ router.get('/display/:id_gateway/:dias', async (req, res) => {
     }
 });
 
+router.get('/chart-chargeback/:id_gateway', async (req, res) => {
+    const { id_gateway } = req.params;
+    try {
+        if (!id_gateway) {
+            return res.status(400).json({ error: 'id_gateway é obrigatório' });
+        }
+
+        const chargeback = await sequelize.query(
+            `
+           select tab.id_gateway, sum(tab.vendas) vendas, sum(tab.chargeback) chargeback, sum(tab.inprotest) inprotest
+            from (
+            select t.id_gateway,
+            case when t.status = 'PAID' then sum(amount) else 0 end vendas,
+            case when t.status = 'CHARGEBACK' then sum(amount)  else 0 end chargeback,
+            case when t.status = 'INPROTEST' then sum(amount)  else 0 end inprotest
+            from transactions t
+            where t.status in('PAID','CHARGEBACK','INPROTEST')
+            and t.id_gateway = :id_gateway
+            group by t.id_gateway , t.status
+            ) tab
+            group by tab.id_gateway
+            `,
+            {
+                replacements: { id_gateway: id_gateway },
+                type: sequelize.QueryTypes.SELECT
+            }
+        );
+
+        return res.status(200).json(chargeback);
+
+    } catch (error) {
+        console.error('Error fetching transactions:', error);
+        return res.status(500).json({ error: 'Erro ao buscar transações' });
+    }
+});
+
+
+
 router.get('/subconta/:id_gateway', async (req, res) => {
     const { id_gateway } = req.params;
     try {

@@ -41,7 +41,11 @@ const enviarEmail = require('../components/email');
  *               - id_gateway
  *               - postback_gateway
  *               - id_seller
- *               - link_origem                
+ *               - link_origem
+ *               - city
+ *               - uf
+ *               - country
+ *               - email                 
  *             properties:
  *               amount:
  *                 type: number
@@ -86,6 +90,18 @@ const enviarEmail = require('../components/email');
  *               link_origem:
  *                 type: string
  *                 description: Link da origem da venda.
+ *               city:
+ *                 type: string
+ *                 description: Cidade do comprador(vendas com cartão). 
+ *               uf:
+ *                 type: string
+ *                 description: Estado do comprador(vendas com cartão).
+ *               country:
+ *                 type: string
+ *                 description: País do comprador(vendas com cartão).
+ *               email:
+ *                 type: string
+ *                 description: e-mail do comprador(vendas com cartão).
  *               itens:
  *                 type: array
  *                 items:
@@ -185,6 +201,10 @@ router.post('/create-transaction', async (req, res) => {
       description,
       cardNumber,
       typePayment,
+      email,
+      city,
+      uf,
+      country,
 
       // pix
       keyPix, //por na doc - se for pix
@@ -252,7 +272,11 @@ router.post('/create-transaction', async (req, res) => {
         external_id,
         end_to_end,
         link_origem,
-        postback_url
+        postback_url,
+        email,
+        city,
+        uf,
+        country
       });
 
     } else if (payment_method === 'PIX') {
@@ -283,7 +307,8 @@ router.post('/create-transaction', async (req, res) => {
         txid: uuiD,
         link_origem,
         postback_url,
-        status: "PENDING"
+        status: "PENDING",
+        name
       });
     } else {
       return res.status(400).json({ error: "Método de pagamento inválido" });

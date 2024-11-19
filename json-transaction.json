@@ -20,6 +20,10 @@
   "merchantCity": "INDAIAL",
   "txid": "d86d9eb8-5228-4795-ae85-acb346c31880",
   "postback_url": "https://postabackurl.com/teste-api",
+  "email": "bona@teste.com",
+  "city": "timbo",
+  "uf": "SC",
+  "country": "brasil",
   "itens": [
     {
       "item_description": "TENIS NINENINE",

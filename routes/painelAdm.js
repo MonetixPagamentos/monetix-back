@@ -4,12 +4,11 @@ const sequelize = require('../db/connection');
 const { Sequelize, where } = require('sequelize');
 const Gateway = require('../db/models/gateway');
 const Documents = require('../db/models/documents');
-const TaxaGateway = require('../db/models/documents');
+const TaxaGateway = require('../db/models/taxaGateway');
 const SubContaSeller = require('../db/models/subContaSeller');
 const path = require('path');
 const Transactions = require('../db/models/transactions');
 const { v4: uuidv4 } = require('uuid');
-const functions = require('../components/functions');
 const SaldoGateway = require('../db/models/saldoGateway');
 const Token = require('../db/models/tokens');
 
@@ -67,16 +66,14 @@ router.get('/list-transactions-seller/:id_seller', async (req, res) => {
             `
                 SELECT 
                 t.id as id_transaction,
-                t.id_gateway, 
-                g.gateway_name,
-                g.document_gateway, 
+                t.id_gateway,
                 t.amount, 
                 t.payment_method,
                 t.created_at as payment_date,
                 t.status,
                 t.integridade 
                 FROM transactions t               
-                 WHERE t.id_seller = :id_seller
+                WHERE t.id_seller = :id_seller
             `,
             {
                 replacements: { id_seller },
@@ -177,6 +174,16 @@ router.get('/dados-gateway/:id_gateway', async (req, res) => {
             taxa: taxa,
             subconta: subconta
         });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/taxa/:id_gateway', async (req, res) => {
+    try {
+        const { id_gateway } = req.params;      
+        const taxa = await TaxaGateway.findAll({ where: { id_gateway: id_gateway } });     
+        return res.status(200).json(taxa);
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
@@ -304,6 +311,7 @@ router.get('/withdraws-all', async (req, res) => {
                 w.payment_date,
                 w.receiver_name,
                 w.document,
+                w.id_gateway,
                 g.gateway_name 
             from withdraws w 
             inner join gateways g on g.id = w.id_gateway 

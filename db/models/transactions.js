@@ -1,5 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../connection');
+const { checkDuplicateIncludeExcludes } = require('@babel/preset-env/lib/normalize-options');
 
 const Transactions = sequelize.define('transactions', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
@@ -18,6 +19,11 @@ const Transactions = sequelize.define('transactions', {
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },
     postback_url :{ type: DataTypes.STRING, allowNull: false},
     integridade: { type: DataTypes.INTEGER, default: 0 }, 
+
+    email:{ type: DataTypes.STRING},
+    city:{ type: DataTypes.STRING},
+    uf:{ type: DataTypes.STRING},
+    country:{ type: DataTypes.STRING},
 
     //payment_date: {type: DataTypes.DATE, allowNull: true},
     // Campos de retorno
