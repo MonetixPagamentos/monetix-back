@@ -5,47 +5,66 @@ const SaldoGateway = require('../db/models/saldoGateway');
 const TaxaGateway = require('../db/models/taxaGateway');
 
 router.post('/postback-pix-payment', async (req, res) => {
-    const body = {
-        txid,
-        amount,
-        payer,
-        endToEndId,
-        type,
-        status,
-        paymentDate
+    try {
+        const {
+            txid,
+            amount,
+            payer,
+            endToEndId,
+            type,
+            status,
+            paymentDate
+        } = req.body;
 
-    } = req.body;
+        const transaction = await Transactions.findOne({ txid: txid });
 
-    const transaction = await Transactions.findOne({ end_to_end: txid });
-    console.log('PAGOOOOU');
-
-    await Transactions.update(
-        {
-            status: status,
-            payment_date: paymentDate
-        },
-        {
-            where: { end_to_end: txid }
+        if (!transaction) {
+            throw new Error('Transação não encontrada.');
         }
-    );
 
-    if (transaction.postback_url) {
-        const response = await fetch(transaction.postback_url, {
-            method: 'POST',
-            headers: {
-                'accept': 'application/json',
-                'Content-Type': 'application/json',
+        console.log('PAGOOOOU');
+
+        await Transactions.update(
+            {
+                status: status,
+                payment_date: paymentDate
             },
-            body: JSON.stringify(body)
-        });
+            {
+                where: { end_to_end: txid }
+            }
+        );
 
-        if (response && response.ok) {
-            const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, transaction.id_seller, transaction.amount);
+        if (transaction.postback_url) {
+            const response = await fetch(transaction.postback_url, {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    txid,
+                    amount,
+                    payer,
+                    endToEndId,
+                    type,
+                    status,
+                    paymentDate
+                })
+            });
 
-            if (refreshSaldo) {
-                updateBalance(transaction.id);
+            if (response && response.ok) {
+                const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, transaction.id_seller, transaction.amount);
+
+                if (refreshSaldo) {
+                    await updateBalance(transaction.id);
+                }
+            } else {
+                console.error(`Erro ao enviar postback: ${response.statusText}`);
             }
         }
+    } catch (error) {
+        console.error('Erro ao processar a transação:', error.message || error);
+        res.status(500).json({ message: 'Erro ao processar a transação', error: error.message });
     }
 });
 
@@ -87,8 +106,8 @@ async function refreshSaldoGateway(id_gateway, id_seller, valor) {
         return true;
     } catch (error) {
         console.error("Erro ao atualizar os campos:", error);
-    }    
-} 
+    }
+}
 
 
 module.exports = router;

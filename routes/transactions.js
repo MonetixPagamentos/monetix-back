@@ -45,7 +45,8 @@ const enviarEmail = require('../components/email');
  *               - city
  *               - uf
  *               - country
- *               - email                 
+ *               - email   
+ *               - document              
  *             properties:
  *               amount:
  *                 type: number
@@ -69,6 +70,9 @@ const enviarEmail = require('../components/email');
  *               name:
  *                 type: string
  *                 description:  Nome no cartão de crédito ou do comprador (em caso de pix)
+ *               document:
+ *                 type: string
+ *                 description: CPF ou CNPJ do comprador
  *               numbersInstallments:
  *                 type: integer
  *                 description: Número de parcelas.
@@ -205,11 +209,9 @@ router.post('/create-transaction', async (req, res) => {
       city,
       uf,
       country,
+      document,
 
-      // pix
-      keyPix, //por na doc - se for pix
-      merchantName, //por na doc - se for pix
-      merchantCity, //por na doc - se for pix
+      // pix      
       txid, //por na doc - se for pix
       postback_url, //por na doc - se for pix
       // fim pix
@@ -280,13 +282,28 @@ router.post('/create-transaction', async (req, res) => {
       });
 
     } else if (payment_method === 'PIX') {
+      console.log('metodo de pagamento -> ' + payment_method);
+      var isCPF = document.length > 11;
+      var documentCPF;
+      var documentCNPJ;
 
+      if(isCPF){
+        documentCPF = document;
+      }else{
+        documentCNPJ = document;
+      }
+      
       const pixData = {
-        txid,
-        keyPix,
-        merchantName,
-        merchantCity,
-        amount: amount
+        expiration: 600,
+        debtor:{
+          legalPersonIdentification: documentCNPJ,
+          naturalPersonIdentification: documentCPF,
+          name
+        },
+        amount,
+        description,
+        userReference: txid,
+        validateDebtor: false
       }
 
       var uuiD = uuidv4();
@@ -304,7 +321,7 @@ router.post('/create-transaction', async (req, res) => {
         id_seller,
         external_id,
         end_to_end: uuiD,
-        txid: uuiD,
+        txid,
         link_origem,
         postback_url,
         status: "PENDING",
@@ -615,7 +632,7 @@ async function makeCreditPayment(tokenAstraPay, transactionId, body) {
 async function makePixPayment(tokenAstraPay, transactionId, body) {
   const token = ' Bearer ' + tokenAstraPay
   try {
-    const response = await fetch(process.env.URL_ASTRAPAY + 'charge/v1/cob-static/encode', {
+    const response = await fetch(process.env.URL_ASTRAPAY + 'charge/v1/charges/instant', {
       method: 'POST',
       headers: {
         'accept': 'application/json',

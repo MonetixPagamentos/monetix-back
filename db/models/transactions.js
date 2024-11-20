@@ -37,11 +37,7 @@ const Transactions = sequelize.define('transactions', {
     link_origem: { type: DataTypes.STRING, allowNull: false },
     updated_balance: { type: DataTypes.INTEGER, defaultValue: 0 },
 
-    // pix
-
-    keyPix: { type: DataTypes.STRING, allowNull: true, comment: 'Key PIX' },
-    merchantName: { type: DataTypes.STRING, allowNull: true, comment: 'Name of the establishment or individual PIX' },
-    merchantCity: { type: DataTypes.STRING, allowNull: true, comment: 'Name of the city where the pix was generated PIX' },    
+    // pix  
     txid: { type: DataTypes.STRING, allowNull: true, comment: 'Unique PIX billing identifier' }
 
 }, {
