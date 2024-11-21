@@ -7,15 +7,13 @@ const Token = require('./models/tokens');
 const SaldoGateway = require('./models/saldoGateway');
 const TaxaGateway = require('./models/taxaGateway');
 const SubContaSeller = require('./models/subContaSeller');
-const Handler = require('./models/handler');
 const Withdraw = require('./models/withdraw');
 const TransactionItem = require('./models/transactionItem');
 const UserAdm = require('./models/userAdm');
 const { version } = require('@babel/core');
 
 const initDb = async () => {
-  try {
-    Handler.sync();
+  try {    
     // Sincroniza o modelo com o banco de dados
     await Gateway.sync();
     await User.sync();
@@ -26,8 +24,7 @@ const initDb = async () => {
     await TaxaGateway.sync();
     await SubContaSeller.sync();
     await Withdraw.sync();
-    await SubContaSeller.sync();
-    await Handler.sync();
+    await SubContaSeller.sync();   
     await TransactionItem.sync();
     await UserAdm.sync();
     
