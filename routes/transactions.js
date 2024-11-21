@@ -579,7 +579,7 @@ async function getTokenAstraPay() {
 async function refreshSaldoGateway(id_gateway, id_seller, valor, numbersInstallments) {
   try {
 
-    const taxaGateway = await TaxaGateway.findOne({ id_gateway: id_gateway });
+    const taxaGateway = await TaxaGateway.findOne({where:{ id_gateway: id_gateway }});
 
     const taxa_reserva = taxaGateway.taxa_reserva;
     const campo = `taxa_cartao_${numbersInstallments}`;

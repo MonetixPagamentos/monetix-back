@@ -24,11 +24,18 @@ app.use(cors());
 const port = 3000;
 setupSwagger(app);
 
-app.use(express.json()); // Para analisar JSON
+app.use(express.json()); 
 
-// Chama a função para inicializar o banco de dados
+/* 21/11/2024 10:46
+
+   pra que serve tandos codigos?
+   a vida não é programada 
+   e as melhores coisas não tem logica! 
+   
+*/
+
 initDb().then(() => {
-  // Use as rotas de clientes após a inicialização do DB
+  
   app.use('/gateway', gatewayRoutes);
   app.use('/user', userRoutes);
   app.use('/transactions', transactions);
@@ -59,8 +66,12 @@ initDb().then(() => {
 
       const user = await User.findOne({ where: { email: email } });
 
+      if(user && user.status == 0 && user.verificacao_email == 0){
+        return res.status(403).json({message: "Verifique sua caixa de e-mail para confirmação da conta!"});
+      }
+
       if(user && user.status == 0){
-        return res.status(403).json({message: "Usuario inativo!"});
+        return res.status(403).json({message: "Usuario inativo, entre em contato com seu gerente de conta!"});
       }
 
       if (user && senha === user.password) {
@@ -99,7 +110,7 @@ initDb().then(() => {
 
 
       } else {
-        return res.status(501).json({message: "usuario não encontrado"});
+        return res.status(501).json({message: "Senha inválida!"});
       }
     } catch (error) {
       console.log(error);
