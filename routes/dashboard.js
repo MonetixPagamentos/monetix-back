@@ -48,7 +48,8 @@ try {
                     [Op.lte]: endDateFormatted,
                 })
             ]
-        }
+        },
+        order: [['id', 'DESC']]
     });
 
     return res.status(200).json(transactions);
