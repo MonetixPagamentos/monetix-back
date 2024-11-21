@@ -4,7 +4,7 @@ const sequelize = require('../connection');
 const Gateway = sequelize.define('gateway', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   gateway_name: { type: DataTypes.STRING, allowNull: false },
-  document_gateway: { type: DataTypes.STRING, allowNull: false, unique: true },
+  document_gateway: { type: DataTypes.STRING, allowNull: false },
   business_opening_date: { type: DataTypes.DATE, allowNull: false },
   statement_descriptor: { type: DataTypes.STRING, allowNull: true },
   middle_ticket: { type: DataTypes.INTEGER, allowNull: true },
@@ -26,8 +26,8 @@ const Gateway = sequelize.define('gateway', {
   agency: {type: DataTypes.STRING, allowNull: true},
   account: {type: DataTypes.STRING, allowNull: true},
   type_account: {type: DataTypes.STRING, allowNull: true},  
-  user_id: { type: DataTypes.INTEGER, allowNull: true, unique: true },
-  token_id: { type: DataTypes.STRING, allowNull: true, unique: true  },
+  user_id: { type: DataTypes.INTEGER, allowNull: true },
+  token_id: { type: DataTypes.STRING, allowNull: true },
   status: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
   ds_status: { type: DataTypes.STRING, allowNull: true, defaultValue: 'Aguardando.' },
   sing_up_step: {type: DataTypes.INTEGER, defaultValue: 1}
@@ -35,6 +35,17 @@ const Gateway = sequelize.define('gateway', {
 }, {
   timestamps: true, // Isso gerencia createdAt e updatedAt automaticamente
   underscored: true,
+  indexes: [   
+    {   unique: true,
+        fields: ['user_id'], 
+    },
+    {   unique: true,
+        fields: ['token_id'], 
+    },
+    {   unique: true,
+        fields: ['document_gateway'], 
+    } 
+]
 });
 
 (async () => {

@@ -6,6 +6,7 @@ const TransactionItem = require('../db/models/transactionItem');
 const SaldoGateway = require('../db/models/saldoGateway');
 const TaxaGateway = require('../db/models/taxaGateway');
 const { v4: uuidv4 } = require('uuid');
+const SubContaSeller = require('../db/models/subContaSeller');
 require('dotenv').config();
 const router = express.Router();
 
@@ -28,6 +29,7 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
+ *               - txid 
  *               - amount
  *               - cardNumber
  *               - cvv
@@ -45,67 +47,86 @@ const router = express.Router();
  *               - city
  *               - uf
  *               - country
- *               - email   
- *               - document              
+ *               - email
+ *               - document
  *             properties:
+ *               txid:
+ *                 type: string
+ *                 example: "*Uuid*" 
+ *                 description: Uuid para identificação da transação e retorno em postback
  *               amount:
  *                 type: number
- *                 description: O valor da transação.
+ *                 example: 20001
+ *                 description: O valor da transação em centavos.
  *               cardNumber:
  *                 type: string
+ *                 example: "4444444444444444"
  *                 description: O número do cartão de crédito.
  *               cvv:
  *                 type: string
+ *                 example: "444"
  *                 description: O código de segurança do cartão.
  *               description:
  *                 type: string
+ *                 example: "Venda de tênis"
  *                 description: Uma descrição da transação.
  *               expirationDate:
  *                 type: string
  *                 format: date
- *                 description: A data de expiração do cartão.
+ *                 example: "205012"
+ *                 description: A data de expiração do cartão (YYYYMM).
  *               idOriginTransaction:
  *                 type: string
- *                 description: ID da transação de origem.
+ *                 example: "12345678"
+ *                 description: ID da transação de origem (Uuid).
  *               name:
  *                 type: string
- *                 description:  Nome no cartão de crédito ou do comprador (em caso de pix)
+ *                 example: "João da Silva"
+ *                 description: Nome no cartão de crédito ou do comprador (em caso de pix).
  *               document:
  *                 type: string
- *                 description: CPF ou CNPJ do comprador
+ *                 example: "99999999999"
+ *                 description: CPF ou CNPJ do comprador.
  *               numbersInstallments:
  *                 type: integer
- *                 description: Número de parcelas.
+ *                 example: 1
+ *                 description: Número de parcelas para cartão de crédito.
  *               typePayment:
  *                 type: string
- *                 description: Tipo de pagamento.
+ *                 example: "A_VISTA"
+ *                 description: Tipo de pagamento (A_VISTA ou PARCELADO).
  *               payment_method:
  *                 type: string
- *                 description: Método de pagamento utilizado.
- *               id_gateway:
+ *                 example: "PIX"
+ *                 description: Método de pagamento utilizado (PIX ou CARD).
+ *               postback_url:
  *                 type: string
- *                 description: ID do gateway de pagamento.
- *               postback_gateway:
- *                 type: string
+ *                 example: "https://meusite.com/webhook"
  *                 description: URL de postback do gateway.
  *               id_seller:
  *                 type: integer
- *                 description: Id do vendedor.  
+ *                 example: 1
+ *                 description: ID da subconta do vendedor.
  *               link_origem:
  *                 type: string
- *                 description: Link da origem da venda.
+ *                 example: "https://sitevenda.com.br"
+ *                 description: Link da origem do site da venda.
  *               city:
  *                 type: string
- *                 description: Cidade do comprador(vendas com cartão). 
+ *                 example: "São Paulo"
+ *                 description: Cidade do comprador.
  *               uf:
  *                 type: string
- *                 description: Estado do comprador(vendas com cartão).
+ *                 example: "SP"
+ *                 description: Estado do comprador.
  *               country:
  *                 type: string
- *                 description: País do comprador(vendas com cartão).
+ *                 example: "BR"
+ *                 description: País do comprador.
  *               email:
  *                 type: string
- *                 description: e-mail do comprador(vendas com cartão).
+ *                 example: "exemplo@exemplo.com"
+ *                 description: E-mail do comprador.
  *               itens:
  *                 type: array
  *                 items:
@@ -113,17 +134,20 @@ const router = express.Router();
  *                   required:
  *                     - item_description
  *                     - item_amount
- *                     - item_qtde 
+ *                     - item_qtde
  *                   properties:
  *                     item_description:
  *                       type: string
- *                       description: Descrição da venda.     
+ *                       example: "Tênis"
+ *                       description: Descrição do item da venda.
  *                     item_amount:
  *                       type: integer
- *                       description: Valor da venda.
+ *                       example: 20000
+ *                       description: Valor da venda em centavos.
  *                     item_qtde:
  *                       type: integer
- *                       description: Quantidade da venda. 
+ *                       example: 1
+ *                       description: Quantidade de itens da venda.
  *     responses:
  *       201:
  *         description: Transação criada com sucesso.
@@ -160,10 +184,7 @@ const router = express.Router();
  *                 payment_method:
  *                   type: string
  *                   description: Método de pagamento.
- *                 id_gateway:
- *                   type: string
- *                   description: ID do gateway.
- *                 postback_gateway:
+ *                 postback_url:
  *                   type: string
  *                   description: URL de postback do gateway.
  *       401:
@@ -173,6 +194,7 @@ const router = express.Router();
  *       500:
  *         description: Erro ao criar transação.
  */
+
 
 /**
  * @swagger
@@ -185,9 +207,6 @@ const router = express.Router();
  */
 
 router.post('/create-transaction', async (req, res) => {
-
-  //const c = getTokenAstraPay();
-  //const u = uuidv4();
 
   try {
     const {
@@ -229,9 +248,22 @@ router.post('/create-transaction', async (req, res) => {
 
     const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
 
-    if (!tokenRecord) {
-      return res.status(403).json({ message: "Autorização falhou!" });
-    }
+    if (!tokenRecord) 
+      return res.status(403).json({ message: "Token inexistente ou intativo!" });
+    
+
+    const subconta = await SubContaSeller.findOne({where:{id:id_seller, id_gateway: tokenRecord.id_gateway }});
+
+    if(!subconta) 
+      return res.status(403).json({ message: "Sub Conta inexistente!" });
+
+    if(!txid) 
+      return res.status(403).json({ message: "Falha na operação txid inexistente!" });
+
+    const trans = await Transactions.findOne({where:{txid: txid}});
+
+    if(trans)
+      return res.status(403).json({ message: "Falha na operação, txid já utilizado, tente novamente com outra referência txid!" });
 
     var data;
     var transaction;
@@ -278,7 +310,8 @@ router.post('/create-transaction', async (req, res) => {
         email,
         city,
         uf,
-        country
+        country,
+        txid
       });
 
     } else if (payment_method === 'PIX') {
@@ -315,7 +348,7 @@ router.post('/create-transaction', async (req, res) => {
       if (!data) return res.status(400).json({ error: "Falha no pagamento PIX" });
       console.log(amount_origin);
       transaction = await Transactions.create({
-        amount: 20001, 
+        amount, 
         description,
         idOriginTransaction,
         payment_method,

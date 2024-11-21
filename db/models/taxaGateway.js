@@ -1,6 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../connection');
- 
+
 const TaxaGateway = sequelize.define('taxa_gateway', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     taxa_pix: { type: DataTypes.INTEGER, defaultValue: 2 }, // Taxa padrão para PIX
@@ -25,6 +25,11 @@ const TaxaGateway = sequelize.define('taxa_gateway', {
 }, {
     timestamps: true, // Adiciona os campos de timestamps (createdAt, updatedAt)
     underscored: true, // Utiliza o padrão de nomenclatura com underscores
+    indexes: [
+        {
+            fields: ['id_gateway'],
+        }
+    ]
 });
 
 (async () => {
@@ -34,8 +39,8 @@ const TaxaGateway = sequelize.define('taxa_gateway', {
         console.log(`Tabela "${TaxaGateway.name}" sincronizada com sucesso, novas colunas foram adicionadas.`);
     } catch (error) {
         console.error(`Erro ao sincronizar a tabela "${TaxaGateway.name}":`, error);
-    } 
-  })()
+    }
+})()
 
 // Sincroniza o modelo com o banco de dados
 TaxaGateway.sync();

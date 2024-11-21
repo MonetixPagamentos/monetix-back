@@ -10,49 +10,54 @@ const sequelize = require('../db/connection');
 router.get('/cash-in/:id_gateway/:start_date/:end_date', async (req, res) => {
     const { id_gateway, start_date, end_date } = req.params;
 
-    try {
-        if (!id_gateway) {
-            return res.status(400).json({ error: 'id_gateway é obrigatório' });
+try {
+    if (!id_gateway) {
+        return res.status(400).json({ error: 'id_gateway é obrigatório' });
+    }
+
+    if (!start_date || !end_date) {
+        return res.status(400).json({ error: 'start_date e end_date são obrigatórios' });
+    }
+
+    const parseDate = (date) => {
+        const isDayFirstFormat = /^\d{2}-\d{2}-\d{4}$/.test(date);
+
+        if (isDayFirstFormat) {
+            const [day, month, year] = date.split('-');
+            return `${year}-${month}-${day}`;
         }
 
-        // Função para converter datas em formatos variados para o formato Date
-        const parseDate = (date) => {
-            // Verifica se a data está no formato dd-mm-aaaa
-            const isDayFirstFormat = /^\d{2}-\d{2}-\d{4}$/.test(date);
+        const parsedDate = new Date(date);
 
-            if (isDayFirstFormat) {
-                const [day, month, year] = date.split('-');
-                return new Date(`${year}-${month}-${day}`);
-            }
+        if (!isNaN(parsedDate)) {
+            return parsedDate.toISOString().split('T')[0]; // Retorna apenas a parte da data
+        } else {
+            throw new Error("Formato de data inválido");
+        }
+    };
 
-            // Tenta criar um objeto Date caso a data já esteja em um formato Date string válido
-            const parsedDate = new Date(date);
+    const startDateFormatted = parseDate(start_date);
+    const endDateFormatted = parseDate(end_date);
 
-            // Verifica se o objeto Date é válido
-            if (!isNaN(parsedDate)) {
-                return parsedDate;
-            } else {
-                throw new Error("Formato de data inválido");
-            }
-        };
+    const transactions = await Transactions.findAll({
+        where: {
+            id_gateway,
+            [Op.and]: [
+                Sequelize.where(Sequelize.fn('DATE', Sequelize.col('created_at')), {
+                    [Op.gte]: startDateFormatted,
+                    [Op.lte]: endDateFormatted,
+                })
+            ]
+        }
+    });
 
-        const startDateFormatted = parseDate(start_date);
-        const endDateFormatted = parseDate(end_date);
+    return res.status(200).json(transactions);
+} catch (error) {
+    console.error('Error fetching transactions:', error.message || error);
+    return res.status(500).json({ error: 'Erro ao buscar transações' });
+}
 
-        const transactions = await Transactions.findAll({
-            where: {
-                id_gateway: id_gateway,
-                created_at: {
-                    [Op.between]: [startDateFormatted, endDateFormatted]
-                }
-            }
-        });
 
-        return res.status(200).json(transactions);
-    } catch (error) {
-        console.error('Error fetching transactions:', error);
-        return res.status(500).json({ error: 'Erro ao buscar transações' });
-    }
 });
 
 
@@ -87,9 +92,16 @@ router.get('/cash-out/:id_gateway', async (req, res) => {
         });
 
         const saldoReserva = await SaldoGateway.findOne({
-            where: { id_gateway: id_gateway },
+            where: {
+                id_gateway: id_gateway,
+                id_seller: {
+                    [Op.in]: sellerIds
+                }
+            },
             attributes: [
-                [fn('SUM', col('val_reserva')), 'val_reserva']
+                //[fn('SUM', col('val_reserva')), 'val_reserva']
+                [Sequelize.literal('SUM(val_reserva - val_saque_reserva)'), 'val_reserva']
+                
             ]
         });
 
@@ -204,8 +216,6 @@ router.get('/chart-chargeback/:id_gateway', async (req, res) => {
     }
 });
 
-
-
 router.get('/subconta/:id_gateway', async (req, res) => {
     const { id_gateway } = req.params;
     try {
@@ -226,7 +236,7 @@ router.get('/subconta/:id_gateway', async (req, res) => {
                 type: sequelize.QueryTypes.SELECT
             }
         );
-
+        
         return res.status(200).json(subContasComSaldo);
 
     } catch (error) {
@@ -371,11 +381,13 @@ router.get('/sale-chart/:id_gateway', async (req, res) => {
                 type: sequelize.QueryTypes.SELECT
             }
         );
-       
-        return res.status(200).json({transactions_week: transactions_week,
-                                     transactions_last_week: transactions_last_week,
-                                     transactions_month: transactions_month,
-                                     transactions_all: transactions_all});
+
+        return res.status(200).json({
+            transactions_week: transactions_week,
+            transactions_last_week: transactions_last_week,
+            transactions_month: transactions_month,
+            transactions_all: transactions_all
+        });
 
     } catch (error) {
         console.error('Error fetching transactions:', error);

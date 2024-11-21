@@ -4,12 +4,17 @@ const sequelize = require('../connection');
 const UserAdm = sequelize.define('user_adm', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, },
   name: { type: DataTypes.STRING, allowNull: false, },
-  email: { type: DataTypes.STRING, allowNull: false, unique: true, },
+  email: { type: DataTypes.STRING, allowNull: false, },
   password: { type: DataTypes.STRING, allowNull: true,}
    
 }, {
   timestamps: true, // Isso gerencia createdAt e updatedAt automaticamente
   underscored: true,
+  indexes: [   
+    {   unique: true,
+        fields: ['email'], 
+    }
+]
 });
 
 (async () => {

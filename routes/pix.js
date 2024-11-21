@@ -99,7 +99,7 @@ async function updateBalance(id_transaction) {
 async function refreshSaldoGateway(id_gateway, id_seller, valor) {
     try {
 
-        const taxaGateway = await TaxaGateway.findOne({ id_gateway: id_gateway });
+        const taxaGateway = await TaxaGateway.findOne({where:{ id_gateway: id_gateway }});
 
         const taxa_reserva = taxaGateway.taxa_reserva;
         const taxa = taxaGateway.taxa_pix;

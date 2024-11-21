@@ -23,9 +23,14 @@ const SubContaSeller = sequelize.define('subconta_seller', {
     postbackUrl: { type: DataTypes.STRING, allowNull: true },
     status: { type: DataTypes.STRING, allowNull: false },
     motivo_status: { type: DataTypes.STRING, allowNull: true }
-},{
+}, {
     timestamps: true,
     underscored: true,
+    indexes: [
+        {
+            fields: ['id_gateway'],
+        }
+    ]
 });
 
 (async () => {
@@ -35,8 +40,8 @@ const SubContaSeller = sequelize.define('subconta_seller', {
         console.log(`Tabela "${SubContaSeller.name}" sincronizada com sucesso, novas colunas foram adicionadas.`);
     } catch (error) {
         console.error(`Erro ao sincronizar a tabela "${SubContaSeller.name}":`, error);
-    } 
-  })()
+    }
+})()
 
 SubContaSeller.sync();
 

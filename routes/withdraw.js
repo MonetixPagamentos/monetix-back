@@ -1,9 +1,10 @@
 const express = require('express');
-const { Sequelize, DataTypes, NOW } = require('sequelize');
+const { Sequelize, DataTypes, NOW, where } = require('sequelize');
 const Withdraw = require('../db/models/withdraw');
 const Gateway = require('../db/models/gateway');
 const SaldoGateway = require('../db/models/saldoGateway');
 const { v4: uuidv4 } = require('uuid');
+const SubContaSeller = require('../db/models/subContaSeller');
 const router = express.Router();
 
 router.post('/update-cash-out', async (req, res) => {
@@ -12,6 +13,11 @@ router.post('/update-cash-out', async (req, res) => {
             id_withdraw,
             approve
         } = req.body;
+        
+        const typeWithdraw = await Withdraw.findOne({
+            where: { id: id_withdraw },
+            attributes: ['type']
+        });
 
         if (approve === "PAID" || approve === "CANCELED") {
             await Withdraw.update(
@@ -24,29 +30,56 @@ router.post('/update-cash-out', async (req, res) => {
                 }
             );
         }
+        if (typeWithdraw === 'SALDO') {
+            if (approve === "PAID") {
+                await SaldoGateway.update(
+                    {
+                        val_disponivel: Sequelize.literal(`val_disponivel - val_saque`),
+                        val_saque: 0
+                    },
+                    {
+                        where: { id_gateway: id_gateway }
+                    }
+                );
+                res.status(200).json({ message: 'Aprovação de saque realizada com sucesso!' });
+            } else if (approve === "CANCELED") {
+                await SaldoGateway.update(
+                    {
+                        val_saque: 0
+                    },
+                    {
+                        where: { id_gateway: id_gateway }
+                    }
+                );
+                res.status(200).json({ message: 'Rejeição de saque realizada com sucesso!' });
+            }
 
-        if (approve === "PAID") {
-            await SaldoGateway.update(
-                {
-                    val_disponivel: Sequelize.literal(`val_disponivel - val_saque`),
-                    val_saque: 0
-                },
-                {
-                    where: { id_gateway: id_gateway }
-                }
-            );
-            res.status(200).json({ message: 'Aprovação de saque realizada com sucesso!' });
-        } else if (approve === "CANCELED") {
-            await SaldoGateway.update(
-                {
-                    val_saque: 0
-                },
-                {
-                    where: { id_gateway: id_gateway }
-                }
-            );
-            res.status(200).json({ message: 'Rejeição de saque realizada com sucesso!' });
+        }else{ // antecipacao
+            if (approve === "PAID") {
+                await SaldoGateway.update(
+                    {
+                        val_reserva: Sequelize.literal(`val_reserva - val_saque_reserva`),
+                        val_saque_reserva: 0
+                    },
+                    {
+                        where: { id_gateway: id_gateway }
+                    }
+                );
+                res.status(200).json({ message: 'Aprovação de saque realizada com sucesso!' });
+
+            } else if (approve === "CANCELED") {
+                await SaldoGateway.update(
+                    {
+                        val_saque_reserva: 0
+                    },
+                    {
+                        where: { id_gateway: id_gateway }
+                    }
+                );
+                res.status(200).json({ message: 'Rejeição de saque realizada com sucesso!' });
+            }
         }
+
 
     } catch (error) {
         res.status(500).json({ message: 'Erro ao processar saque, chama o Jung ou o Bona logo! ' + error });
@@ -97,9 +130,75 @@ router.post('/cash-out', async (req, res) => {
             pix_type: pix_type,
             status: 'PENDING',
             postbackUrl_gateway: 'https://monetix.com',
-            postbackUrl: 'https://monetix.com'
+            postbackUrl: 'https://monetix.com',
+            type: 'SALDO'
         });
         res.status(201).json({ message: 'Solicitação de saque criada com sucesso!' });
+
+        console.log(whitdraw);
+
+    } catch (error) {
+        res.status(500).json({ message: 'Falha na solicitação de saque!', error });
+    }
+});
+
+router.post('/cash-out-antecipacao', async (req, res) => {
+
+    try {
+        const { id_gateway,
+            receiver_name,
+            pix_key,
+            pix_type
+        } = req.body;
+
+        const sellers = await SubContaSeller.findAll({
+            where: { id_gateway: id_gateway, status: 1 },
+            attributes: ['id']
+        });
+
+        const sellerIds = sellers.map(seller => seller.id);
+
+        const saldo_gateways = await SaldoGateway.findAll({ where: { id_seller: sellerIds } });
+
+        var amount_withdraw = 0;
+
+        for (const saldo of saldo_gateways) {
+
+            amount_withdraw = amount_withdraw + Number(saldo.val_reserva);
+            await SaldoGateway.update(
+                {
+                    val_saque_reserva: Sequelize.literal(`val_saque_reserva + ${Number(saldo.val_reserva)}`),
+                },
+                {
+                    where: { id_gateway: id_gateway, id_seller: saldo.id }
+                }
+            );
+        }
+
+        const gateway = await Gateway.findOne({
+            where: { id: id_gateway },
+            attributes: ['id', 'gateway_name', 'document_gateway', 'user_id', 'token_id']
+        });
+
+        const uuid = uuidv4();
+
+        const whitdraw = await Withdraw.create({
+            token_id: gateway.token_id,
+            external_id: uuid,
+            end_to_end: uuid,
+            id_gateway: id_gateway,
+            id_user: gateway.user_id,
+            amount: amount_withdraw,
+            document: gateway.document_gateway,
+            receiver_name: receiver_name,
+            pix_key: pix_key,
+            pix_type: pix_type,
+            status: 'PENDING',
+            postbackUrl_gateway: 'https://monetix.com',
+            postbackUrl: 'https://monetix.com',
+            type: 'ANTECIPACAO'
+        });
+        res.status(201).json({ message: 'Solicitação de saque de reserva criada com sucesso!' });
 
         console.log(whitdraw);
 
