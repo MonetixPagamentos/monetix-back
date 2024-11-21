@@ -3,6 +3,7 @@ const router = express.Router();
 const Transactions = require('../db/models/transactions');
 const SaldoGateway = require('../db/models/saldoGateway');
 const TaxaGateway = require('../db/models/taxaGateway');
+const { Sequelize } = require('sequelize');
 
 router.post('/postback-pix-payment', async (req, res) => {
     try {
@@ -13,10 +14,13 @@ router.post('/postback-pix-payment', async (req, res) => {
             endToEndId,
             type,
             status,
-            paymentDate
+            paymentDate,
+            userReference
         } = req.body;
 
-        const transaction = await Transactions.findOne({ txid: txid });
+        const transaction = await Transactions.findOne({where:{ txid: userReference }});
+
+        if(transaction.updated_balance == 1)  return res.status(201).json({message: 'DUPLICATE EVENT'});
 
         if (!transaction) {
             throw new Error('Transação não encontrada.');
@@ -24,44 +28,56 @@ router.post('/postback-pix-payment', async (req, res) => {
 
         console.log('PAGOOOOU');
 
-        await Transactions.update(
+        var status_transaction;
+
+        if (status == 'SUCCESS') {
+            status_transaction = 'PAID';
+        } else {
+            status_transaction = 'CANCELED'
+        }
+
+        const transStatus = await Transactions.update(
             {
-                status: status,
+                status: status_transaction,
                 payment_date: paymentDate
             },
             {
-                where: { end_to_end: txid }
+                where: { txid: userReference }
             }
         );
 
-        if (transaction.postback_url) {
-            const response = await fetch(transaction.postback_url, {
-                method: 'POST',
-                headers: {
-                    'accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    txid,
-                    amount,
-                    payer,
-                    endToEndId,
-                    type,
-                    status,
-                    paymentDate
-                })
-            });
-
-            if (response && response.ok) {
-                const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, transaction.id_seller, transaction.amount);
-
-                if (refreshSaldo) {
-                    await updateBalance(transaction.id);
-                }
-            } else {
-                console.error(`Erro ao enviar postback: ${response.statusText}`);
+        if (transStatus) {
+            const refreshSaldo = await refreshSaldoGateway(transaction.id_gateway, transaction.id_seller, transaction.amount);
+            if (refreshSaldo) {
+                await updateBalance(transaction.id);
             }
         }
+        try{
+
+            if (transaction.postback_url) {
+                const response = await fetch(transaction.postback_url, {
+                    method: 'POST',
+                    headers: {
+                        'accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        txid,
+                        amount,
+                        payer,
+                        endToEndId,
+                        type,
+                        status,
+                        paymentDate
+                    })
+                });
+            }
+        }catch(error){
+            console.error('POSTBACK INVALIDO:', error.message || error);
+        }finally{
+            return res.status(200).json({message: 'SUCCESS'});
+        }
+        
     } catch (error) {
         console.error('Erro ao processar a transação:', error.message || error);
         res.status(500).json({ message: 'Erro ao processar a transação', error: error.message });

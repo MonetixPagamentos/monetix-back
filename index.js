@@ -99,7 +99,7 @@ initDb().then(() => {
 
 
       } else {
-        return res.status(404).json({message: "usuario não encontrado"});
+        return res.status(501).json({message: "usuario não encontrado"});
       }
     } catch (error) {
       console.log(error);
@@ -120,7 +120,7 @@ initDb().then(() => {
         res.status(201).json({id: UserAdm.id, name: UserAdm.name});
 
         }else {
-        return res.status(404).json({message: "usuario não encontrado"});
+        return res.status(501).json({message: "usuario não encontrado"});
       }
     } catch (error) {
       console.log(error);

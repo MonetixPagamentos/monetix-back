@@ -8,7 +8,7 @@ const TaxaGateway = require('../db/models/taxaGateway');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 const router = express.Router();
-const enviarEmail = require('../components/email');
+
 
 //documentacao
 /**
@@ -283,7 +283,7 @@ router.post('/create-transaction', async (req, res) => {
 
     } else if (payment_method === 'PIX') {
       console.log('metodo de pagamento -> ' + payment_method);
-      var isCPF = document.length > 11;
+      var isCPF = document.length == 11;
       var documentCPF;
       var documentCNPJ;
 
@@ -292,7 +292,10 @@ router.post('/create-transaction', async (req, res) => {
       }else{
         documentCNPJ = document;
       }
-      
+
+      var amount_origin = amount;
+      var amount_pix_data = (amount/100).toFixed(2);     
+
       const pixData = {
         expiration: 600,
         debtor:{
@@ -300,7 +303,7 @@ router.post('/create-transaction', async (req, res) => {
           naturalPersonIdentification: documentCPF,
           name
         },
-        amount,
+        amount: amount_pix_data,
         description,
         userReference: txid,
         validateDebtor: false
@@ -310,9 +313,9 @@ router.post('/create-transaction', async (req, res) => {
       data = await makePixPayment(await getTokenAstraPay(), uuiD, pixData);
 
       if (!data) return res.status(400).json({ error: "Falha no pagamento PIX" });
-
+      console.log(amount_origin);
       transaction = await Transactions.create({
-        amount,
+        amount: 20001, 
         description,
         idOriginTransaction,
         payment_method,
@@ -645,6 +648,7 @@ async function makePixPayment(tokenAstraPay, transactionId, body) {
 
     const data = await response.json();
     if (response.ok) {
+      console.log('makePixPayment ok...');
       return data;
     }
     return false;

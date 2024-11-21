@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-async function enviarEmail(to, subject, text, html) {
+async function enviarEmail(to, subject, text) {
   try {
     const info = await transporter.sendMail({
       from: '"MONETIX" <no-reply@monetixpagamentos.com>', 

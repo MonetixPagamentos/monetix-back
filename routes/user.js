@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../db/models/user'); // Importa o modelo Cliente
 const router = express.Router();
+const enviarEmail = require('../components/email');
 
 // Rota para criar um novo cliente
 router.post('/novo-user', async (req, res) => {
@@ -19,6 +20,17 @@ router.post('/novo-user', async (req, res) => {
       phone,
       password
     });
+
+    const textEmail = process.env.API_BASE_URL +`/email/ativacao-user/${user.id}`
+    try {
+        await enviarEmail(email, 'Ativação de conta', textEmail);
+        //return res.status(200).json({ message: 'Email sent successfully' });
+        console.log('enviou email de validacao');
+    } catch (error) {
+      console.log('erro no envio, email de validacao');
+        return res.status(500).json({ error: error.message || 'Failed to send email' });
+    }
+
     res.status(201).json({id: user.id});
     
   } catch (err) {
