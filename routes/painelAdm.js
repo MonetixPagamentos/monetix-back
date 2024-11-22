@@ -137,15 +137,27 @@ router.get('/list-transactions-itens/:id_transaction', async (req, res) => {
 });
 
 router.get('/download/:filename', (req, res) => {
-    const filename = req.params.filename;
+    try {
+        console.log('**************** DOWNLOAD DE DOCUMENTOS PAINEL ADM ****************');
 
-    const filepath = path.join(__dirname.replace('\\routes', ''), 'uploads', filename);
-    res.download(filepath, (err) => {
-        if (err) {
-            console.error('Erro ao enviar o arquivo:', err);
-            res.status(404).send('Arquivo não encontrado.');
-        }
-    });
+        const filename = req.params.filename;
+        console.log('Arquivo -> ' + filename);
+        console.log('DIR NAME - > ' + path.join(__dirname), 'uploads', filename);
+
+        const filepath = path.join(__dirname.replace('\\routes', ''), 'uploads', filename);
+
+        console.log('caminho download anexos -> ' + filepath);
+        res.download(filepath, (err) => {
+            if (err) {
+                console.error('Erro ao enviar o arquivo:', err);
+                res.status(404).send('Arquivo não encontrado.');
+            }
+        });
+
+
+    } catch (error) {
+        console.log("erro ao baixar documento: " + error);
+    }
 });
 
 router.get('/document/:id_gateway', async (req, res) => {
