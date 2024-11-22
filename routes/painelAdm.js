@@ -144,7 +144,7 @@ router.get('/download/:filename', (req, res) => {
         console.log('Arquivo -> ' + filename);
         console.log('DIR NAME - > ' + path.join(__dirname), 'uploads', filename);
 
-        const filepath = path.join(__dirname.replace('routes ', ''), 'uploads', filename);
+        const filepath = path.join(__dirname.replace('routes', ''), 'uploads', filename);
 
         console.log('caminho download anexos -> ' + filepath);
         res.download(filepath, (err) => {
