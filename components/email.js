@@ -11,13 +11,14 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-async function enviarEmail(to, subject, text) {
+async function enviarEmail(to, subject, text, html) {
   try {
     const info = await transporter.sendMail({
       from: '"MONETIX" <no-reply@monetixpagamentos.com>', 
       to: to, // pra quem
       subject: subject, // assunto      
-      text: text // corpo      
+      text: text, // texto normal
+      html: html // html 
     });
 
     console.log('E-mail enviado: %s', info.messageId);

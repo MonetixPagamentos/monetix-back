@@ -95,7 +95,7 @@ router.post('/novo-user', async (req, res) => {
       </html>
     `
 
-      await enviarEmail(email, 'Ativação de conta', mensagem);
+      await enviarEmail(email, 'Ativação de conta', '' ,mensagem);
       //return res.status(200).json({ message: 'Email sent successfully' });
       console.log('enviou email de validacao');
     } catch (error) {

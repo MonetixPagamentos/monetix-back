@@ -26,6 +26,8 @@ router.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 router.get('/download/:filename', (req, res) => {
     const filename = req.params.filename;
     const filepath = path.join(__dirname.replace('\\routes',''), 'uploads', filename);
+      
+    console.log('caminho download anexos -> ' + filepath);
     res.download(filepath, (err) => {
       if (err) {
         console.error('Erro ao enviar o arquivo:', err);

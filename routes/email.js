@@ -21,7 +21,7 @@ router.get('/send-email/:to/:subject/:text', async (req, res) => {
 router.get('/ativacao-user/:id_user', async (req, res) => {
     const { id_user } = req.params;
     const user = await User.update({status: 1, verificacao_email: 1},{where: { id: id_user, verificacao_email: 0 }});   
-    res.redirect(process.env.API_BASE_URL);       
+    res.redirect(process.env.API_BASE_URL+"/login");       
 });
 
 module.exports = router;
