@@ -24,17 +24,28 @@ const upload = multer({
 router.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 router.get('/download/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filepath = path.join(__dirname.replace('\\routes',''), 'uploads', filename);
-      
-    console.log('caminho download anexos -> ' + filepath);
-    res.download(filepath, (err) => {
-      if (err) {
-        console.error('Erro ao enviar o arquivo:', err);
-        res.status(404).send('Arquivo não encontrado.');
-      }
-    });
-  });
+    try {
+        console.log('**************** DOWNLOAD DE DOCUMENTOS ****************');
+
+        const filename = req.params.filename;
+        console.log('Arquivo -> ' + filename);
+        console.log('DIR NAME - > ' + path.join(__dirname), 'uploads', filename);
+
+        const filepath = path.join(__dirname.replace('\\routes', ''), 'uploads', filename);
+
+        console.log('caminho download anexos -> ' + filepath);
+        res.download(filepath, (err) => {
+            if (err) {
+                console.error('Erro ao enviar o arquivo:', err);
+                res.status(404).send('Arquivo não encontrado.');
+            }
+        });
+
+
+    } catch (error) {
+        console.log("erro ao baixar documento: " + error);
+    }
+});
 
 router.post('/documentos-anexos', upload.fields([
     { name: 'file0', maxCount: 1 }, //contratoSocial
@@ -48,20 +59,20 @@ router.post('/documentos-anexos', upload.fields([
     if (!idGateway) {
         return res.status(400).send('ID da empresa é obrigatório!');
     }
- 
+
     if (!req.files.file0 || !req.files.file1 || !req.files.file2 || !req.files.file3) {
         return res.status(400).send('Todos os arquivos são obrigatórios!');
     }
-    
+
     const contratoSocialPath = req.files.file0[0].filename;
     const documentoFrentePath = req.files.file1[0].filename;
     const documentoVersoPath = req.files.file2[0].filename;
     const selfiePath = req.files.file3[0].filename;
 
-    try {        
+    try {
         const existingDocument = await Documents.findOne({ where: { id_gateway: idGateway } });
 
-        if (existingDocument) {            
+        if (existingDocument) {
             const [updated] = await Documents.update({
                 contrato_social: contratoSocialPath,
                 documento_frente: documentoFrentePath,
@@ -74,7 +85,7 @@ router.post('/documentos-anexos', upload.fields([
             if (updated === 0) {
                 return res.status(404).send('Cliente não encontrado!');
             }
-            res.status(200).json({message: 'Documentos atualizados com sucesso!'});
+            res.status(200).json({ message: 'Documentos atualizados com sucesso!' });
         } else {
             // Se o documento não existir, crie um novo registro
             await Documents.create({
@@ -85,7 +96,7 @@ router.post('/documentos-anexos', upload.fields([
                 documento_verso: documentoVersoPath,
                 selfie: selfiePath,
             });
-            res.status(200).json({message: 'Documentos inseridos com sucesso!'});
+            res.status(200).json({ message: 'Documentos inseridos com sucesso!' });
         }
     } catch (error) {
         console.error('Erro ao inserir ou atualizar os documentos no banco de dados:', error);
