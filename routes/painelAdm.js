@@ -40,7 +40,7 @@ router.post('/cancel-transaction/:id_transaction', async (req, res) => {
     const { id_transaction } = req.params;
     try {
         const tran = await Transactions.findOne({ where: { id: id_transaction } });
-        
+
         if (!tran) {
             return res.status(404).json({ error: "Transaction not found" });
         }
@@ -61,7 +61,7 @@ router.post('/cancel-transaction/:id_transaction', async (req, res) => {
 
 router.get('/list-transactions-seller/:id_seller', async (req, res) => {
     try {
-        const { id_seller} = req.params;
+        const { id_seller } = req.params;
         const transactions = await sequelize.query(
             `
                 SELECT 
@@ -138,22 +138,15 @@ router.get('/list-transactions-itens/:id_transaction', async (req, res) => {
 
 router.get('/download/:filename', (req, res) => {
     try {
-        console.log('**************** DOWNLOAD DE DOCUMENTOS PAINEL ADM ****************');
-
         const filename = req.params.filename;
-        console.log('Arquivo -> ' + filename);
-        console.log('DIR NAME - > ' + path.join(__dirname), 'uploads', filename);
-
         const filepath = path.join(__dirname.replace('routes', ''), 'uploads', filename);
 
-        console.log('caminho download anexos -> ' + filepath);
         res.download(filepath, (err) => {
             if (err) {
                 console.error('Erro ao enviar o arquivo:', err);
                 res.status(404).send('Arquivo não encontrado.');
             }
         });
-
 
     } catch (error) {
         console.log("erro ao baixar documento: " + error);
@@ -193,8 +186,8 @@ router.get('/dados-gateway/:id_gateway', async (req, res) => {
 
 router.get('/taxa/:id_gateway', async (req, res) => {
     try {
-        const { id_gateway } = req.params;      
-        const taxa = await TaxaGateway.findAll({ where: { id_gateway: id_gateway } });     
+        const { id_gateway } = req.params;
+        const taxa = await TaxaGateway.findAll({ where: { id_gateway: id_gateway } });
         return res.status(200).json(taxa);
     } catch (error) {
         return res.status(500).json({ error: error.message });
@@ -211,7 +204,7 @@ router.post('/update-status-gateway', async (req, res) => {
         );
 
         // habilita / desabilita o token
-        await Token.update({ativo: status}, {where: {id_gateway: id_gateway}});
+        await Token.update({ ativo: status }, { where: { id_gateway: id_gateway } });
 
         if (gateway[0] === 0) {
             return res.status(404).json({ error: 'Gateway não encontrado' });
@@ -237,7 +230,7 @@ async function cancelePaymentCard(idTransaction) {
                     'Content-Type': 'application/json',
                     'Authorization': ' Bearer ' + token
                 },
-                body: JSON.stringify({creditCardId: transaction.creditCardId})
+                body: JSON.stringify({ creditCardId: transaction.creditCardId })
             });
 
             if (response.ok) {
@@ -309,8 +302,8 @@ async function refundPayment(idTransaction) {
 
 
 router.get('/withdraws-all', async (req, res) => {
-    
-    try {       
+
+    try {
         const withdraws = await sequelize.query(
             `
               select 
@@ -331,7 +324,7 @@ router.get('/withdraws-all', async (req, res) => {
                         
             `,
             {
-               
+
                 type: sequelize.QueryTypes.SELECT
             }
         );
