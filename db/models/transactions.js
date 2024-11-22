@@ -19,6 +19,8 @@ const Transactions = sequelize.define('transactions', {
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },
     postback_url :{ type: DataTypes.STRING, allowNull: false},
     integridade: { type: DataTypes.INTEGER, default: 0 }, 
+    phone: { type: DataTypes.STRING, allowNull: true }, 
+    document: { type: DataTypes.STRING, allowNull: true }, 
 
     email:{ type: DataTypes.STRING},
     city:{ type: DataTypes.STRING},

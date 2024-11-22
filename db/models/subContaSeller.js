@@ -22,7 +22,8 @@ const SubContaSeller = sequelize.define('subconta_seller', {
     data_nascimento: { type: DataTypes.DATE, allowNull: true },
     postbackUrl: { type: DataTypes.STRING, allowNull: true },
     status: { type: DataTypes.STRING, allowNull: false },
-    motivo_status: { type: DataTypes.STRING, allowNull: true }
+    motivo_status: { type: DataTypes.STRING, allowNull: true },
+    integridade: {type: DataTypes.INTEGER},    
 }, {
     timestamps: true,
     underscored: true,

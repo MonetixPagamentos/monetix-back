@@ -7,6 +7,8 @@ const SaldoGateway = require('../db/models/saldoGateway');
 const TaxaGateway = require('../db/models/taxaGateway');
 const { v4: uuidv4 } = require('uuid');
 const SubContaSeller = require('../db/models/subContaSeller');
+const sequelize = require('../db/connection');
+const IACortex = require('../db/models/IACortex');
 require('dotenv').config();
 const router = express.Router();
 
@@ -48,7 +50,8 @@ const router = express.Router();
  *               - uf
  *               - country
  *               - email
- *               - document
+ *               - document,
+ *               - phone
  *             properties:
  *               txid:
  *                 type: string
@@ -127,6 +130,10 @@ const router = express.Router();
  *                 type: string
  *                 example: "exemplo@exemplo.com"
  *                 description: E-mail do comprador.
+ *               phone:
+ *                 type: string
+ *                 example: "+5511991144566"
+ *                 description: Telefone do comprador do comprador. 
  *               itens:
  *                 type: array
  *                 items:
@@ -195,7 +202,6 @@ const router = express.Router();
  *         description: Erro ao criar transação.
  */
 
-
 /**
  * @swagger
  * components:
@@ -229,8 +235,8 @@ router.post('/create-transaction', async (req, res) => {
       uf,
       country,
       document,
+      phone,
 
-      // pix      
       txid, //por na doc - se for pix
       postback_url, //por na doc - se for pix
       // fim pix
@@ -248,21 +254,21 @@ router.post('/create-transaction', async (req, res) => {
 
     const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
 
-    if (!tokenRecord) 
+    if (!tokenRecord)
       return res.status(403).json({ message: "Token inexistente ou intativo!" });
-    
 
-    const subconta = await SubContaSeller.findOne({where:{id:id_seller, id_gateway: tokenRecord.id_gateway }});
 
-    if(!subconta) 
+    const subconta = await SubContaSeller.findOne({ where: { id: id_seller, id_gateway: tokenRecord.id_gateway } });
+
+    if (!subconta)
       return res.status(403).json({ message: "Sub Conta inexistente!" });
 
-    if(!txid) 
+    if (!txid)
       return res.status(403).json({ message: "Falha na operação txid inexistente!" });
 
-    const trans = await Transactions.findOne({where:{txid: txid}});
+    const trans = await Transactions.findOne({ where: { txid: txid } });
 
-    if(trans)
+    if (trans)
       return res.status(403).json({ message: "Falha na operação, txid já utilizado, tente novamente com outra referência txid!" });
 
     var data;
@@ -311,7 +317,10 @@ router.post('/create-transaction', async (req, res) => {
         city,
         uf,
         country,
-        txid
+        txid,
+        integridade: 0,
+        phone,
+        document
       });
 
     } else if (payment_method === 'PIX') {
@@ -320,18 +329,18 @@ router.post('/create-transaction', async (req, res) => {
       var documentCPF;
       var documentCNPJ;
 
-      if(isCPF){
+      if (isCPF) {
         documentCPF = document;
-      }else{
+      } else {
         documentCNPJ = document;
       }
 
       var amount_origin = amount;
-      var amount_pix_data = (amount/100).toFixed(2);     
+      var amount_pix_data = (amount / 100).toFixed(2);
 
       const pixData = {
         expiration: 600,
-        debtor:{
+        debtor: {
           legalPersonIdentification: documentCNPJ,
           naturalPersonIdentification: documentCPF,
           name
@@ -348,7 +357,7 @@ router.post('/create-transaction', async (req, res) => {
       if (!data) return res.status(400).json({ error: "Falha no pagamento PIX" });
       console.log(amount_origin);
       transaction = await Transactions.create({
-        amount, 
+        amount,
         description,
         idOriginTransaction,
         payment_method,
@@ -361,7 +370,10 @@ router.post('/create-transaction', async (req, res) => {
         link_origem,
         postback_url,
         status: "PENDING",
-        name
+        name,
+        integridade: 100,
+        phone,
+        document
       });
     } else {
       return res.status(400).json({ error: "Método de pagamento inválido" });
@@ -377,12 +389,15 @@ router.post('/create-transaction', async (req, res) => {
       });
     });
 
-
     if (transaction && data.status == "PAID") {
       const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, data.amount, data.numbersInstallments);
       if (refreshSaldo) {
         updateBalance(transaction.id);
       }
+    }
+
+    if (payment_method === 'CARD') {     
+      setImmediate(() => setIntegridade());
     }
 
     res.status(201).json(data);
@@ -612,7 +627,7 @@ async function getTokenAstraPay() {
 async function refreshSaldoGateway(id_gateway, id_seller, valor, numbersInstallments) {
   try {
 
-    const taxaGateway = await TaxaGateway.findOne({where:{ id_gateway: id_gateway }});
+    const taxaGateway = await TaxaGateway.findOne({ where: { id_gateway: id_gateway } });
 
     const taxa_reserva = taxaGateway.taxa_reserva;
     const campo = `taxa_cartao_${numbersInstallments}`;
@@ -700,6 +715,121 @@ async function updateBalance(id_transaction) {
     console.log("Campo updated_balance atualizado, id_transaction: " + id_transaction);
   } catch (error) {
     console.error("Erro ao atualizar o campo updated_balance:", error);
+  }
+}
+
+async function setIntegridade(){
+
+  const avaliar = await Transactions.findAll({where:{integridade:0}});
+
+    await avaliar.forEach((a) => {
+      console.log('Avaliando as transações pendentes, ID => ' + a.id);
+      avaliableCortex(a.id, a.id_seller);
+    });
+}
+
+async function avaliableCortex(idTransaction, idSeller) {
+  try {
+    console.log('ID => ' + idTransaction);
+    const transactionCortex = await sequelize.query(
+      `
+        SELECT 
+          t.name as nome, 
+          t.email,
+          t.city as cidade,
+          t.uf as estado,
+          t.phone as telefone,
+          t.amount as valorTotal,
+          t.document,
+          (SELECT GROUP_CONCAT(ti.description SEPARATOR ',') 
+           FROM transaction_items ti 
+           WHERE ti.id_transaction = t.id) AS produtos
+        FROM transactions t
+        WHERE t.id = :idTransaction;
+      `,
+      {
+        replacements: { idTransaction },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    if (!transactionCortex || transactionCortex.length === 0) {
+      return false;
+    }
+
+    const response = await fetch(`${process.env.URL_API_CORTEX}/integridade/avaliar-transacao`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(transactionCortex[0]), 
+    });
+
+    const data = await response.json();
+    var txtJustificativa ='';
+
+    await data.resposta.justificativa.forEach((j) => {
+      if(txtJustificativa ===''){
+        txtJustificativa = j.requisito + ' => ' +j.justificativa;
+      }else{
+        txtJustificativa = txtJustificativa +' x ' +j.requisito + ' => ' +j.justificativa;      
+      }
+    });
+
+    await IACortex.create({
+      id_transaction: idTransaction,
+      integridade: data.resposta.integridade,
+      justificativa: txtJustificativa
+    });
+
+    await Transactions.update({integridade: data.resposta.integridade},
+      {where:{
+        id: idTransaction
+      }});
+   
+    if (!response.ok) {    
+      console.log('Nao avalidou os produtos');
+    }    
+
+    const media = await sequelize.query(
+      `
+        SELECT 
+        CAST((tab.integridade / tab.total_vendas) AS SIGNED) AS media_integridade,
+        tab.total_vendas,
+        tab.qtde_critica
+      FROM (
+        SELECT  
+          SUM(t.integridade) AS integridade, 
+          (SELECT COUNT(*) 
+          FROM transactions t2  
+          WHERE t2.id_seller = :idSeller  
+            AND t2.payment_method <> 'PIX') AS total_vendas,
+          (SELECT COUNT(*) 
+          FROM transactions t3 
+          WHERE t3.integridade < 45
+            AND t3.id_seller = :idSeller
+            AND t3.payment_method <> 'PIX' ) AS qtde_critica
+        FROM transactions t
+        WHERE t.id_seller = :idSeller
+          AND t.payment_method <> 'PIX'
+      ) tab
+      `,
+      {
+        replacements: { idSeller },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+   
+    if((media[0].total_vendas > 50 && media[0].media_integridade < 48) || media[0].qtde_critica >= 100){
+      await SubContaSeller.update({integridade: media[0].media_integridade, status: 0},{where:{id:idSeller}});
+    }else{
+      await SubContaSeller.update({integridade: media[0].media_integridade},{where:{id:idSeller}});
+    }      
+
+    return true;
+  } catch (error) {
+    console.log(`Error in avaliableCortex: ${error.message}`, error);     
   }
 }
 
