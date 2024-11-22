@@ -6,18 +6,19 @@ const SaldoGateway = require('../db/models/saldoGateway');
 const { v4: uuidv4 } = require('uuid');
 const SubContaSeller = require('../db/models/subContaSeller');
 const router = express.Router();
+const enviarEmail = require('../components/email');
+const { emailSolictacaoSaque, emailAprovacaoSaque, emailCancelaSaque } = require('../components/templates');
+const { now } = require('sequelize/lib/utils');
 
 router.post('/update-cash-out', async (req, res) => {
     try {
-        const { id_gateway,
+        const {
+            id_gateway,
             id_withdraw,
             approve
         } = req.body;
-        
-        const typeWithdraw = await Withdraw.findOne({
-            where: { id: id_withdraw },
-            attributes: ['type']
-        });
+
+        const whitdraw = await Withdraw.findOne({ where: { id: id_withdraw } });
 
         if (approve === "PAID" || approve === "CANCELED") {
             await Withdraw.update(
@@ -30,7 +31,7 @@ router.post('/update-cash-out', async (req, res) => {
                 }
             );
         }
-        if (typeWithdraw === 'SALDO') {
+        if (whitdraw.type === 'SALDO') {
             if (approve === "PAID") {
                 await SaldoGateway.update(
                     {
@@ -41,7 +42,7 @@ router.post('/update-cash-out', async (req, res) => {
                         where: { id_gateway: id_gateway }
                     }
                 );
-                res.status(200).json({ message: 'Aprovação de saque realizada com sucesso!' });
+
             } else if (approve === "CANCELED") {
                 await SaldoGateway.update(
                     {
@@ -51,10 +52,9 @@ router.post('/update-cash-out', async (req, res) => {
                         where: { id_gateway: id_gateway }
                     }
                 );
-                res.status(200).json({ message: 'Rejeição de saque realizada com sucesso!' });
             }
 
-        }else{ // antecipacao
+        } else { // antecipacao
             if (approve === "PAID") {
                 await SaldoGateway.update(
                     {
@@ -65,8 +65,6 @@ router.post('/update-cash-out', async (req, res) => {
                         where: { id_gateway: id_gateway }
                     }
                 );
-                res.status(200).json({ message: 'Aprovação de saque realizada com sucesso!' });
-
             } else if (approve === "CANCELED") {
                 await SaldoGateway.update(
                     {
@@ -76,11 +74,33 @@ router.post('/update-cash-out', async (req, res) => {
                         where: { id_gateway: id_gateway }
                     }
                 );
-                res.status(200).json({ message: 'Rejeição de saque realizada com sucesso!' });
             }
         }
 
+        var msgEmail;
+        var title;
+        if (approve === "CANCELED") {
+            msgEmail = emailCancelaSaque;
+            title = 'Solicitação de saque cancelada';
+        } else {
+            msgEmail = emailAprovacaoSaque;
+            title = 'Solicitação de saque aprovada';
+        }
 
+        const now = new Date();
+        const formattedDate = now.toLocaleString('pt-BR', {
+            dateStyle: 'short',
+            timeStyle: 'short',
+        });
+
+        msgEmail = msgEmail.replace('#valor#', (whitdraw.amount / 100).toFixed(2));
+        msgEmail = msgEmail.replace('#data#', formattedDate);
+
+        const gateway = await Gateway.findOne({ where: { id: id_gateway } });
+
+        await enviarEmail(gateway.email_responsable, title, '', msgEmail);
+
+        res.status(200).json({ message: title });
     } catch (error) {
         res.status(500).json({ message: 'Erro ao processar saque, chama o Jung ou o Bona logo! ' + error });
     }
@@ -111,11 +131,10 @@ router.post('/cash-out', async (req, res) => {
 
         const gateway = await Gateway.findOne({
             where: { id: id_gateway },
-            attributes: ['id', 'gateway_name', 'document_gateway', 'user_id', 'token_id']
+            attributes: ['id', 'gateway_name', 'document_gateway', 'user_id', 'token_id', 'email_responsable']
         });
 
         const uuid = uuidv4();
-
 
         const whitdraw = await Withdraw.create({
             token_id: gateway.token_id,
@@ -133,6 +152,18 @@ router.post('/cash-out', async (req, res) => {
             postbackUrl: 'https://monetix.com',
             type: 'SALDO'
         });
+
+        const now = new Date();
+        const formattedDate = now.toLocaleString('pt-BR', {
+            dateStyle: 'short',
+            timeStyle: 'short',
+        });
+
+        var msgEmail = emailSolictacaoSaque;
+        msgEmail = msgEmail.replace('#valor#', Number(amount_withdraw / 100).toFixed(2));
+        msgEmail = msgEmail.replace('#data#', formattedDate);
+
+        await enviarEmail(gateway.email_responsable, 'Solicitação de saque', '', msgEmail);
         res.status(201).json({ message: 'Solicitação de saque criada com sucesso!' });
 
         console.log(whitdraw);
@@ -198,6 +229,19 @@ router.post('/cash-out-antecipacao', async (req, res) => {
             postbackUrl: 'https://monetix.com',
             type: 'ANTECIPACAO'
         });
+
+        const now = new Date();
+        const formattedDate = now.toLocaleString('pt-BR', {
+            dateStyle: 'short',
+            timeStyle: 'short',
+        });
+
+        var msgEmail = emailSolictacaoSaque;
+        msgEmail = msgEmail.replace('#valor#', Number(amount_withdraw / 100).toFixed(2));
+        msgEmail = msgEmail.replace('#data#', formattedDate);
+
+        await enviarEmail(gateway.email_responsable, 'Solicitação de saque', '', msgEmail);
+
         res.status(201).json({ message: 'Solicitação de saque de reserva criada com sucesso!' });
 
         console.log(whitdraw);
@@ -206,6 +250,5 @@ router.post('/cash-out-antecipacao', async (req, res) => {
         res.status(500).json({ message: 'Falha na solicitação de saque!', error });
     }
 });
-
 
 module.exports = router;

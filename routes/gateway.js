@@ -244,4 +244,20 @@ router.delete('/excluir-gateway/:id', async (req, res) => {
   }
 });
 
+
+router.get('/consulta/:id', async (req, res) => {
+  try {
+    
+    const { id } = req.params;        
+    
+    const gateway = await Gateway.findOne({where: {id}
+     });  
+    res.status(201).json(gateway);
+
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
+
 module.exports = router;

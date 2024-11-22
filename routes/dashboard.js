@@ -70,7 +70,8 @@ router.get('/cash-out/:id_gateway', async (req, res) => {
         }
 
         const withdraw = await Withdraw.findAll({
-            where: { id_gateway: id_gateway }
+            where: { id_gateway: id_gateway },
+            order: [['id', 'DESC']], 
         });
 
         const sellers = await SubContaSeller.findAll({ where: { id_gateway: id_gateway, status: 1 }, attributes: ['id'] });

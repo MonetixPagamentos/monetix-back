@@ -25,15 +25,10 @@ router.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 router.get('/download/:filename', (req, res) => {
     try {
-        console.log('**************** DOWNLOAD DE DOCUMENTOS ****************');
-
-        const filename = req.params.filename;
-        console.log('Arquivo -> ' + filename);
-        console.log('DIR NAME - > ' + path.join(__dirname), 'uploads', filename);
-
+        
+        const filename = req.params.filename;        
         const filepath = path.join(__dirname.replace('\\routes', ''), 'uploads', filename);
-
-        console.log('caminho download anexos -> ' + filepath);
+       
         res.download(filepath, (err) => {
             if (err) {
                 console.error('Erro ao enviar o arquivo:', err);
