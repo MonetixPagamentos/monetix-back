@@ -194,13 +194,12 @@ router.get('/chart-chargeback/:id_gateway', async (req, res) => {
            select tab.id_gateway, sum(tab.vendas) vendas, sum(tab.chargeback) chargeback, sum(tab.inprotest) inprotest
             from (
             select t.id_gateway,
-            case when t.status = 'PAID' then sum(amount) else 0 end vendas,
-            case when t.status = 'CHARGEBACK' then sum(amount)  else 0 end chargeback,
-            case when t.status = 'INPROTEST' then sum(amount)  else 0 end inprotest
+            case when t.status = 'PAID' then 1 else 0 end vendas,
+            case when t.status = 'CHARGEBACK' then 1  else 0 end chargeback,
+            case when t.status = 'INPROTEST' then 1  else 0 end inprotest
             from transactions t
             where t.status in('PAID','CHARGEBACK','INPROTEST')
-            and t.id_gateway = :id_gateway
-            group by t.id_gateway , t.status
+            and t.id_gateway = :id_gateway           
             ) tab
             group by tab.id_gateway
             `,
