@@ -262,7 +262,7 @@ router.post('/create-transaction', async (req, res) => {
     const tokenInfratec = await getTokenInfratec();
     const token = 'Bearer ' + tokenInfratec.access_token;
     if (paymentWay === 5) {
-     
+
       const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/sales`, {
         method: 'POST',
         headers: {
@@ -282,11 +282,11 @@ router.post('/create-transaction', async (req, res) => {
         })
       });
 
-      if (response.headers.get('Content-Type')?.includes('application/json')) {        
-        data = await response.json();        
-      } else {        
-        const text = await response.text();        
-        return res.status(500).json({ error: "Erro ao criar transação. " + text }); 
+      if (response.headers.get('Content-Type')?.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        return res.status(500).json({ error: "Erro ao criar transação. " + text });
       }
 
       if (!data) return res.status(400).json({ error: "Falha no pagamento com cartão" });
@@ -311,7 +311,7 @@ router.post('/create-transaction', async (req, res) => {
         typePayment = 'PARCELADO'
       } else {
         typePayment = 'A_VISTA'
-      }      
+      }
 
       var numbersInstallments;
       if (data.ecommerce.installments) {
@@ -327,7 +327,7 @@ router.post('/create-transaction', async (req, res) => {
         idOriginTransaction,
         name,
         numbersInstallments,
-        typePayment,       
+        typePayment,
         status,
         payment_method,
         token_gateway: tokenRecord.token,
@@ -346,7 +346,14 @@ router.post('/create-transaction', async (req, res) => {
         document: payerDocument
       });
 
-    } else if (paymentWay === 3)/*PIX*/ {     
+      if (transaction && status === 'PAID') {
+        const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, amount, numbersInstallments);
+        if (refreshSaldo) {
+          updateBalance(transaction.id);
+        }
+      }
+
+    } else if (paymentWay === 3)/*PIX*/ {
 
       const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/sales`, {
         method: 'POST',
@@ -358,7 +365,7 @@ router.post('/create-transaction', async (req, res) => {
           'Connection': 'keep-alive'
         },
         body: JSON.stringify({
-          sellerId,
+          sellerId: tokenBearer,
           amount,
           referenceId,
           paymentWay,
@@ -368,62 +375,40 @@ router.post('/create-transaction', async (req, res) => {
         })
       });
 
-      data = await response.json();
-      console.log(data);
-
-
-
-
-
-      var isCPF = document.length == 11;
-      var documentCPF;
-      var documentCNPJ;
-
-      if (isCPF) {
-        documentCPF = document;
+      if (response.headers.get('Content-Type')?.includes('application/json')) {
+        data = await response.json();
       } else {
-        documentCNPJ = document;
+        const text = await response.text();
+        return res.status(500).json({ error: "Erro ao criar transação. " + text });
       }
 
-      var amount_origin = amount;
-      var amount_pix_data = (amount / 100).toFixed(2);
-
-      const pixData = {
-        expiration: 600,
-        debtor: {
-          legalPersonIdentification: documentCNPJ,
-          naturalPersonIdentification: documentCPF,
-          name
-        },
-        amount: amount_pix_data,
-        description,
-        userReference: txid,
-        validateDebtor: false
+      if (data.paymentWay === 5) {
+        payment_method = 'CARD'
+      } else if (data.paymentWay === 3) {
+        payment_method = 'PIX'
+      } else if (data.paymentWay === 2) {
+        payment_method = 'BOLETO'
       }
-
-      var uuiD = uuidv4();
-      data = await makePixPayment(await getTokenAstraPay(), uuiD, pixData);
 
       if (!data) return res.status(400).json({ error: "Falha no pagamento PIX" });
-      console.log(amount_origin);
+
       transaction = await Transactions.create({
         amount,
         description,
-        idOriginTransaction,
+        idOriginTransaction: data.id,
         payment_method,
         token_gateway: tokenRecord.token,
         id_gateway: tokenRecord.id_gateway,
         id_seller,
-        external_id,
-        end_to_end: uuiD,
-        txid,
+        external_id: referenceId,
+        end_to_end,
         link_origem,
-        postback_url,
+        postback_url: callbackUrl,
         status: "PENDING",
         name,
         integridade: 100,
         phone,
-        document
+        document: payerDocument
       });
     } else {
       return res.status(400).json({ error: "Método de pagamento inválido" });
@@ -438,13 +423,6 @@ router.post('/create-transaction', async (req, res) => {
         qtde: item.item_qtde
       });
     });
-
-    if (transaction && status === 'PAID') {
-      const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, amount, numbersInstallments);
-      if (refreshSaldo) {
-        updateBalance(transaction.id);
-      }
-    }
 
     // if (payment_method === 'CARD') {
     //   setImmediate(() => setIntegridade());
