@@ -12,6 +12,7 @@ const swaggerOptions = {
         servers: [
             {
                 url: process.env.API_BASE_URL, // Altere para a URL da sua API
+                //url: "http://localhost:3000/api-docs/"
             },
         ],
         components: {

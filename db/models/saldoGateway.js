@@ -9,7 +9,7 @@ const SaldoGateway = sequelize.define('saldoGateway', {
     val_saque_reserva: { type: DataTypes.INTEGER, defaultValue: 0 },
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },
     id_usuario: { type: DataTypes.INTEGER, allowNull: false },
-    id_seller: { type: DataTypes.INTEGER, allowNull: false },
+    id_seller: { type: DataTypes.STRING, allowNull: false },
 }, {
     timestamps: true,
     underscored: true,

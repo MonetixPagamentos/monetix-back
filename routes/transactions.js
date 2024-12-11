@@ -9,6 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const SubContaSeller = require('../db/models/subContaSeller');
 const sequelize = require('../db/connection');
 const IACortex = require('../db/models/IACortex');
+const { getTokenInfratec } = require('../components/functions');
 require('dotenv').config();
 const router = express.Router();
 
@@ -44,7 +45,7 @@ const router = express.Router();
  *               - payment_method
  *               - id_gateway
  *               - postback_gateway
- *               - id_seller
+ *               - sellerId
  *               - link_origem
  *               - city
  *               - uf
@@ -106,7 +107,7 @@ const router = express.Router();
  *                 type: string
  *                 example: "https://meusite.com/webhook"
  *                 description: URL de postback do gateway.
- *               id_seller:
+ *               sellerId:
  *                 type: integer
  *                 example: 1
  *                 description: ID da subconta do vendedor.
@@ -217,30 +218,22 @@ router.post('/create-transaction', async (req, res) => {
   try {
     const {
       id_seller,
-      end_to_end, //por na doc
-      external_id, //por na doc
-      payment_method,
+      paymentWay,
+      amount,
+      referenceId,
+      ecommerce,
       link_origem,
       name,
-      expirationDate,
-      cvv,
-      amount,
-      numbersInstallments, //por na doc 1 a 12
       idOriginTransaction,
       description,
-      cardNumber,
-      typePayment,
       email,
       city,
       uf,
       country,
-      document,
+      payerDocument,
       phone,
-
-      txid, //por na doc - se for pix
-      postback_url, //por na doc - se for pix
-      // fim pix
-
+      callbackUrl,
+      end_to_end,
       itens
 
     } = req.body;
@@ -258,73 +251,130 @@ router.post('/create-transaction', async (req, res) => {
       return res.status(403).json({ message: "Token inexistente ou intativo!" });
 
 
-    const subconta = await SubContaSeller.findOne({ where: { id: id_seller, id_gateway: tokenRecord.id_gateway } });
+    const subconta = await SubContaSeller.findOne({ where: { id_seller: id_seller, id_gateway: tokenRecord.id_gateway } });
 
     if (!subconta)
       return res.status(403).json({ message: "Sub Conta inexistente!" });
 
-    if (!txid)
-      return res.status(403).json({ message: "Falha na operação txid inexistente!" });
-
-    const trans = await Transactions.findOne({ where: { txid: txid } });
-
-    if (trans)
-      return res.status(403).json({ message: "Falha na operação, txid já utilizado, tente novamente com outra referência txid!" });
-
     var data;
     var transaction;
-    if (payment_method === 'CARD') {
-      const cardData = {
-        nameCreditCard: name,
-        expirationDate,
-        cvv,
-        amount,
-        numbersInstallments,
-        idOriginTransaction,
-        description,
-        cardNumber,
-        typePayment
-      };
 
-      data = await makeCreditPayment(await getTokenAstraPay(), uuidv4(), cardData);
+    const tokenInfratec = await getTokenInfratec();
+    const token = 'Bearer ' + tokenInfratec.access_token;
+    if (paymentWay === 5) {
+     
+      const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/sales`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token,
+          'Accept': '*/*',
+          'Accept-Encoding': 'gzip,deflate,br',
+          'Connection': 'keep-alive'
+        },
+        body: JSON.stringify({
+          sellerId: tokenRecord.token,
+          amount,
+          referenceId,
+          paymentWay,
+          description,
+          ecommerce
+        })
+      });
+
+      if (response.headers.get('Content-Type')?.includes('application/json')) {        
+        data = await response.json();        
+      } else {        
+        const text = await response.text();        
+        return res.status(500).json({ error: "Erro ao criar transação. " + text }); 
+      }
 
       if (!data) return res.status(400).json({ error: "Falha no pagamento com cartão" });
 
+      if (data.paymentWay === 5) {
+        payment_method = 'CARD'
+      } else if (data.paymentWay === 3) {
+        payment_method = 'PIX'
+      } else if (data.paymentWay === 2) {
+        payment_method = 'BOLETO'
+      }
+
+      if (data.status === 0) {
+        status = 'CANCELED'
+      } else if (data.status === 1) {
+        status = 'PAID'
+      } else {
+        status = 'ERRO'
+      }
+
+      if (data.ecommerce.installments > 1) {
+        typePayment = 'PARCELADO'
+      } else {
+        typePayment = 'A_VISTA'
+      }      
+
+      var numbersInstallments;
+      if (data.ecommerce.installments) {
+        numbersInstallments = data.ecommerce.installments;
+      }
+
       transaction = await Transactions.create({
         amount: data.amount,
-        cardNumber: data.cardNumber,
-        cvv: data.cvv,
-        description: data.description,
-        expirationDate: data.expirationDate,
-        idOriginTransaction: data.idOriginTransaction,
-        name: data.nameCreditCard,
-        numbersInstallments: data.numbersInstallments,
-        typePayment: data.typePayment,
-        authorizationCode: data.autorizationCode,
-        creditCardId: data.creditCardId,
-        identificationTransaction: data.identificationTransaction,
-        identificationTransactionCanceled: data.identificationTransactionCanceled,
-        status: data.status,
+        cardNumber: ecommerce.card.number,
+        cvv: ecommerce.card.cvv,
+        description,
+        expirationDate: ecommerce.card.expMonth + '/' + ecommerce.card.expYear,
+        idOriginTransaction,
+        name,
+        numbersInstallments,
+        typePayment,       
+        status,
         payment_method,
         token_gateway: tokenRecord.token,
         id_gateway: tokenRecord.id_gateway,
         id_seller,
-        external_id,
+        external_id: referenceId,
         end_to_end,
         link_origem,
-        postback_url,
+        postback_url: callbackUrl,
         email,
         city,
         uf,
         country,
-        txid,
         integridade: 0,
         phone,
-        document
+        document: payerDocument
       });
 
-    } else if (payment_method === 'PIX') {
-      console.log('metodo de pagamento -> ' + payment_method);
+    } else if (paymentWay === 3)/*PIX*/ {     
+
+      const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/sales`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token,
+          'Accept': '*/*',
+          'Accept-Encoding': 'gzip,deflate,br',
+          'Connection': 'keep-alive'
+        },
+        body: JSON.stringify({
+          sellerId,
+          amount,
+          referenceId,
+          paymentWay,
+          description,
+          payerDocument,
+          callbackUrl
+        })
+      });
+
+      data = await response.json();
+      console.log(data);
+
+
+
+
+
       var isCPF = document.length == 11;
       var documentCPF;
       var documentCNPJ;
@@ -389,16 +439,16 @@ router.post('/create-transaction', async (req, res) => {
       });
     });
 
-    if (transaction && data.status == "PAID") {
-      const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, data.amount, data.numbersInstallments);
+    if (transaction && status === 'PAID') {
+      const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, amount, numbersInstallments);
       if (refreshSaldo) {
         updateBalance(transaction.id);
       }
     }
 
-    if (payment_method === 'CARD') {     
-      setImmediate(() => setIntegridade());
-    }
+    // if (payment_method === 'CARD') {
+    //   setImmediate(() => setIntegridade());
+    // }
 
     res.status(201).json(data);
 
@@ -655,30 +705,39 @@ async function refreshSaldoGateway(id_gateway, id_seller, valor, numbersInstallm
   }
 }
 
-async function makeCreditPayment(tokenAstraPay, transactionId, body) {
-  const token = ' Bearer ' + tokenAstraPay
+async function makeCreditPayment(tokenParceiro, body) {
+  const token = 'Bearer ' + tokenParceiro;
   try {
-    const response = await fetch(process.env.URL_ASTRAPAY + 'card/v1/credit', {
+    const response = await fetch(process.env.INFRATEC_API + '/api/chargers/partners/sales', {
       method: 'POST',
       headers: {
-        'accept': 'application/json',
-        'x-transaction-id': transactionId,
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip,deflate,br',
+        'Connection': 'keep-alive',
         'Content-Type': 'application/json',
         'Authorization': token
       },
       body: JSON.stringify(body)
     });
 
-    const data = await response.json();
-    if (response.ok) {
-      return data;
+    const responseText = await response.text(); // Obtenha o texto bruto
+    try {
+      const data = JSON.parse(responseText); // Tente converter para JSON
+      if (response.ok) {
+        return data;
+      }
+      console.error('Erro na API:', data);
+      return false;
+    } catch (error) {
+      console.error('Resposta não é um JSON válido:', responseText);
+      return false;
     }
-    return false;
   } catch (error) {
-    console.error('Erro ao realizar pagamento:', error.response ? error.response.data : error.message);
+    console.error('Erro ao realizar pagamento:', error.message);
     return false;
   }
 }
+
 
 async function makePixPayment(tokenAstraPay, transactionId, body) {
   const token = ' Bearer ' + tokenAstraPay
@@ -718,14 +777,14 @@ async function updateBalance(id_transaction) {
   }
 }
 
-async function setIntegridade(){
+async function setIntegridade() {
 
-  const avaliar = await Transactions.findAll({where:{integridade:0}});
+  const avaliar = await Transactions.findAll({ where: { integridade: 0 } });
 
-    await avaliar.forEach((a) => {
-      console.log('Avaliando as transações pendentes, ID => ' + a.id);
-      avaliableCortex(a.id, a.id_seller);
-    });
+  await avaliar.forEach((a) => {
+    console.log('Avaliando as transações pendentes, ID => ' + a.id);
+    avaliableCortex(a.id, a.id_seller);
+  });
 }
 
 async function avaliableCortex(idTransaction, idSeller) {
@@ -763,17 +822,17 @@ async function avaliableCortex(idTransaction, idSeller) {
         Accept: 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(transactionCortex[0]), 
+      body: JSON.stringify(transactionCortex[0]),
     });
 
     const data = await response.json();
-    var txtJustificativa ='';
+    var txtJustificativa = '';
 
     await data.resposta.justificativa.forEach((j) => {
-      if(txtJustificativa ===''){
-        txtJustificativa = j.requisito + ' => ' +j.justificativa;
-      }else{
-        txtJustificativa = txtJustificativa +' x ' +j.requisito + ' => ' +j.justificativa;      
+      if (txtJustificativa === '') {
+        txtJustificativa = j.requisito + ' => ' + j.justificativa;
+      } else {
+        txtJustificativa = txtJustificativa + ' x ' + j.requisito + ' => ' + j.justificativa;
       }
     });
 
@@ -783,14 +842,16 @@ async function avaliableCortex(idTransaction, idSeller) {
       justificativa: txtJustificativa
     });
 
-    await Transactions.update({integridade: data.resposta.integridade},
-      {where:{
-        id: idTransaction
-      }});
-   
-    if (!response.ok) {    
+    await Transactions.update({ integridade: data.resposta.integridade },
+      {
+        where: {
+          id: idTransaction
+        }
+      });
+
+    if (!response.ok) {
       console.log('Nao avalidou os produtos');
-    }    
+    }
 
     const media = await sequelize.query(
       `
@@ -820,16 +881,16 @@ async function avaliableCortex(idTransaction, idSeller) {
         type: sequelize.QueryTypes.SELECT,
       }
     );
-   
-    if((media[0].total_vendas > 50 && media[0].media_integridade < 48) || media[0].qtde_critica >= 100){
-      await SubContaSeller.update({integridade: media[0].media_integridade, status: 0},{where:{id:idSeller}});
-    }else{
-      await SubContaSeller.update({integridade: media[0].media_integridade},{where:{id:idSeller}});
-    }      
+
+    if ((media[0].total_vendas > 50 && media[0].media_integridade < 48) || media[0].qtde_critica >= 100) {
+      await SubContaSeller.update({ integridade: media[0].media_integridade, status: 0 }, { where: { id: idSeller } });
+    } else {
+      await SubContaSeller.update({ integridade: media[0].media_integridade }, { where: { id: idSeller } });
+    }
 
     return true;
   } catch (error) {
-    console.log(`Error in avaliableCortex: ${error.message}`, error);     
+    console.log(`Error in avaliableCortex: ${error.message}`, error);
   }
 }
 

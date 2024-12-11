@@ -7,7 +7,8 @@ var sequelize;
 if (process.env.HOMOLOG == 0) { //homolog
   sequelize = new Sequelize('monetix', 'root', null, {
     host: 'localhost',
-    dialect: 'mysql',
+    dialect: 'mysql',    
+    timezone: '-03:00'
   });
 } else if (process.env.HOMOLOG == 1) { // sandobox
   sequelize = new Sequelize('defaultdb', 'doadmin', 'AVNS_X5grNxqGgswGOQFZqqQ', {
@@ -20,7 +21,8 @@ if (process.env.HOMOLOG == 0) { //homolog
         rejectUnauthorized: false,
         ca: fs.readFileSync(path.join(__dirname, 'ca-certificate-sandbox.crt'))
       }
-    }
+    },
+      timezone: '-03:00'
   });
 } else if (process.env.HOMOLOG == 2) { // prod
   sequelize = new Sequelize('defaultdb', 'doadmin', 'AVNS_km51tKNzBd4nJ0KMoEG', {
@@ -33,7 +35,8 @@ if (process.env.HOMOLOG == 0) { //homolog
         rejectUnauthorized: false,
         ca: fs.readFileSync(path.join(__dirname, 'ca-monetix-db.crt'))
       }
-    }
+    },
+      timezone: '-03:00'
   });
 }
 

@@ -1,8 +1,8 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid'); // Importando a função v4 do uuid
 const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
 const TaxaGateway = require('../db/models/taxaGateway');
 const Token = require('../db/models/tokens');
+const { getTokenInfratec } = require('../components/functions');
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ router.post('/cadastro1/:userId', async (req, res) => {
       middle_ticket
     } = req.body;
 
-    const token_id = uuidv4(); // Gerando um UUID
+    //const token_id = uuidv4(); // Gerando um UUID
 
     const gateway = await Gateway.create({
       gateway_name,
@@ -30,17 +30,17 @@ router.post('/cadastro1/:userId', async (req, res) => {
       statement_descriptor,
       middle_ticket,
       user_id: userId,
-      token_id,
+      //token_id,
     });
 
     console.log(business_opening_date);
 
     if (gateway && gateway.id) {
 
-      await Token.create({
-        token: token_id,
-        id_gateway: gateway.id
-      });
+      // await Token.create({
+      //   token: token_id,
+      //   id_gateway: gateway.id
+      // });
 
       await TaxaGateway.create({
         id_gateway: gateway.id,
@@ -49,7 +49,7 @@ router.post('/cadastro1/:userId', async (req, res) => {
     }
 
     res.status(201).json({
-      token_id: gateway.token_id,
+     // token_id: gateway.token_id,
       user_id: gateway.user_id,
       gateway_id: gateway.id
     });
@@ -155,6 +155,42 @@ router.post('/cadastro4', async (req, res) => {
     type_account
   } = req.body;
 
+  const gateway = await Gateway.findOne({where:{id:gateway_id}});
+
+  const data = await getTokenInfratec();
+  const token = 'Bearer ' + data.access_token;
+  const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token,
+      'Accept': '*/*',
+      'Accept-Encoding': 'gzip,deflate,br',
+      'Connection': 'keep-alive'
+    },
+    body: JSON.stringify({
+      document: gateway.document_responsable,
+      name: gateway.name_responsable,
+      birthDate: gateway.birth_date,
+      cellphone: gateway.phone_responsable,
+      email: gateway.email_responsable,
+      account:{
+        Agency: agency,
+        Number: account,
+        BankCode: bank,
+        PixKey: gateway.document_gateway,
+
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`httpError ${response.status} - ${response.statusText}`);
+  }
+
+  const responseData = await response.json();
+  console.log('Response Data:', responseData);
+
   try {
     const updated = await Gateway.update(
       {
@@ -162,12 +198,19 @@ router.post('/cadastro4', async (req, res) => {
         agency: agency,
         account: account,
         type_account: type_account,
-        sing_up_step: 4
+        sing_up_step: 4,
+        token_id: responseData.id
+        
       },
       {
         where: { id: gateway_id }
       }
     );
+
+    await Token.create({
+        token: responseData.id,
+        id_gateway: gateway.id
+      });
 
     if (updated) {
       console.log('Update realizado com sucesso!');
@@ -247,11 +290,12 @@ router.delete('/excluir-gateway/:id', async (req, res) => {
 
 router.get('/consulta/:id', async (req, res) => {
   try {
-    
-    const { id } = req.params;        
-    
-    const gateway = await Gateway.findOne({where: {id}
-     });  
+
+    const { id } = req.params;
+
+    const gateway = await Gateway.findOne({
+      where: { id }
+    });
     res.status(201).json(gateway);
 
   } catch (err) {

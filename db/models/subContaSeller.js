@@ -3,7 +3,8 @@ const sequelize = require('../connection');
 
 const SubContaSeller = sequelize.define('subconta_seller', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    id_gateway: { type: DataTypes.INTEGER, allowNull: false },
+    id_gateway: { type: DataTypes.INTEGER, allowNull: false },    
+    id_seller: {type: DataTypes.STRING},
     nome_fantasia: { type: DataTypes.STRING, allowNull: false },
     razao_social: { type: DataTypes.STRING, allowNull: false },
     cnpj: { type: DataTypes.STRING, allowNull: false },
@@ -24,13 +25,17 @@ const SubContaSeller = sequelize.define('subconta_seller', {
     status: { type: DataTypes.STRING, allowNull: false },
     motivo_status: { type: DataTypes.STRING, allowNull: true },
     integridade: {type: DataTypes.INTEGER},    
+    agencia: {type: DataTypes.STRING},    
+    conta: {type: DataTypes.STRING},
+    banco: {type: DataTypes.STRING},
+    pix_key: {type: DataTypes.STRING}    
 }, {
     timestamps: true,
     underscored: true,
     indexes: [
         {
             fields: ['id_gateway'],
-        }
+        }        
     ]
 });
 

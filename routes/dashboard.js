@@ -57,8 +57,6 @@ try {
     console.error('Error fetching transactions:', error.message || error);
     return res.status(500).json({ error: 'Erro ao buscar transações' });
 }
-
-
 });
 
 
@@ -74,9 +72,9 @@ router.get('/cash-out/:id_gateway', async (req, res) => {
             order: [['id', 'DESC']], 
         });
 
-        const sellers = await SubContaSeller.findAll({ where: { id_gateway: id_gateway, status: 1 }, attributes: ['id'] });
+        const sellers = await SubContaSeller.findAll({ where: { id_gateway: id_gateway, status: 1 }, attributes: ['id_seller'] });
 
-        const sellerIds = sellers.map(seller => seller.id);
+        const sellerIds = sellers.map(seller => seller.id_seller);
 
         const saldoGateway = await SaldoGateway.findOne({
             where: {

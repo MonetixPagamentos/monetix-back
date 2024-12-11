@@ -4,7 +4,7 @@ const { checkDuplicateIncludeExcludes } = require('@babel/preset-env/lib/normali
 
 const Transactions = sequelize.define('transactions', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    id_seller: { type: DataTypes.INTEGER, allowNull: false },
+    id_seller: { type: DataTypes.STRING, allowNull: false },
     amount: { type: DataTypes.INTEGER, allowNull: false }, // Valor da transação
     cardNumber: { type: DataTypes.STRING, allowNull: true }, // Número de cartão
     cvv: { type: DataTypes.INTEGER, allowNull: true }, // Código de segurança

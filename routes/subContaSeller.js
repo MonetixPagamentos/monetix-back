@@ -3,7 +3,8 @@ const router = express.Router();
 const SubContaSeller = require('../db/models/subContaSeller');
 const Token = require('../db/models/tokens');
 const SaldoGateway = require('../db/models/saldoGateway');
-const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
+const Gateway = require('../db/models/gateway'); 
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * @swagger
@@ -21,11 +22,11 @@ const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
  *         application/json:
  *           schema:
  *             type: object
- *             required:
+ *             required:               
  *               - nome_fantasia
- *               - razao_social
- *               - cnpj
- *               - telefone
+ *               - name
+ *               - document
+ *               - cellphone
  *               - email
  *               - ticket_medio
  *               - numero
@@ -37,21 +38,22 @@ const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
  *               - pais
  *               - cpf
  *               - nome_mae
- *               - data_nascimento
+ *               - birthDate
  *               - postbackUrl
  *               - status
  *               - motivo_status
+ *               - account
  *             properties:
  *               nome_fantasia:
  *                 type: string
  *                 example: "Loja Exemplo"
- *               razao_social:
+ *               name:
  *                 type: string
  *                 example: "Loja Exemplo LTDA"
- *               cnpj:
+ *               document:
  *                 type: string
  *                 example: "12345678000199"
- *               telefone:
+ *               cellphone:
  *                 type: string
  *                 example: "(11) 91234-5678"
  *               email:
@@ -87,13 +89,33 @@ const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
  *               nome_mae:
  *                 type: string
  *                 example: "Maria Exemplo"
- *               data_nascimento:
+ *               birthDate:
  *                 type: string
  *                 format: date
  *                 example: "1990-01-01"
  *               postbackUrl:
  *                 type: string
  *                 example: "https://meusite.com/webhook"
+ *               account:
+ *                 type: object
+ *                 required:
+ *                   - Agency
+ *                   - Number
+ *                   - BankCode
+ *                 properties:
+ *                   agency:
+ *                     type: string
+ *                     example: "0001"
+ *                   number:
+ *                     type: string
+ *                     example: "44452675"
+ *                   bankCode:
+ *                     type: string
+ *                     example: "260"
+ *                   pixKey:
+ *                     type: string
+ *                     nullable: true
+ *                     example: null
  *     responses:
  *       201:
  *         description: Subconta Seller criada com sucesso
@@ -190,36 +212,100 @@ const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
 
 router.post('/create-subconta', async (req, res) => {
     const {
-        id_seller, nome_fantasia, razao_social, cnpj, telefone,
+        nome_fantasia,
         email, ticket_medio, numero, complemento, rua, bairro, cidade, estado, pais, cpf,
-        nome_mae, data_nascimento, postbackUrl
+        nome_mae, postbackUrl, document, name, birthDate, cellphone, account
     } = req.body;
 
-    // Extrai o token do cabeçalho de autorização
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
-    }
+    try {
+        
+        const authHeader = req.headers['authorization'];
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+        }
 
-    const tokenBearer = authHeader.split(' ')[1];
-  
-    // Busca o token ativo na tabela de Token
-    const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+        const tokenBearer = authHeader.split(' ')[1];
+        const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
 
-    if (!tokenRecord) {
-      return res.status(403).json({ message: "Autorização falhou!" });
-    }
+        if (!tokenRecord) {
+            return res.status(403).json({ message: "Autorização falhou!" });
+        }
 
-    const id_gateway = tokenRecord.id_gateway;
+        const id_gateway = tokenRecord.id_gateway;
 
-    try {        
+        // const data = await getTokenInfratec();
+        // const token = 'Bearer ' + data.access_token;
+        // const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/users`, {
+        //     method: 'POST',
+        //     headers: {            
+        //         'Content-Type': 'application/json',            
+        //         'Authorization': token,
+        //         'Accept': '*/*',
+        //         'Accept-Encoding': 'gzip,deflate,br',
+        //         'Connection': 'keep-alive'
+        //     },
+        //     body: JSON.stringify({ 
+        //         document,
+        //         name,
+        //         birthDate,
+        //         cellphone,
+        //         email,
+        //         account
+        //     })
+        // });
+
+        // if (!response.ok) {
+        //     throw new Error(`httpError ${response.status} - ${response.statusText}`);
+        // }
+
+        // const responseData = await response.json();
+        // console.log('Response Data:', responseData);
+        
+        const existingSubconta = await SubContaSeller.findOne({
+            where: { cnpj: document }
+        });
+
+        if (existingSubconta) {
+            // Atualiza a subconta existente
+            await SubContaSeller.update({           
+                nome_fantasia,
+                razao_social: name,
+                cnpj: document,
+                telefone: cellphone,
+                email,
+                ticket_medio,
+                numero,
+                complemento,
+                rua,
+                bairro,
+                cidade,
+                estado,
+                pais,
+                cpf,
+                nome_mae,
+                data_nascimento: birthDate,
+                postbackUrl,               
+                agencia: account.agency,
+                conta: account.number,
+                banco: account.bankCode,
+                pix_key: account.pixKey
+            }, {
+                where: { cnpj: document}
+            });
+
+            return res.status(200).json({ 
+                message: 'Subconta Seller updated successfully',
+                data: { cnpj: document }
+            });
+        }
+        const uuid = await uuidv4();
+        // Cria uma nova subconta se não existir
         const newSubcontaSeller = await SubContaSeller.create({
-            id_seller,
-            id_gateway,                         
+            id_gateway,            
             nome_fantasia,
-            razao_social,
-            cnpj,
-            telefone,
+            razao_social: name,
+            cnpj: document,
+            telefone: cellphone,
             email,
             ticket_medio,
             numero,
@@ -231,28 +317,36 @@ router.post('/create-subconta', async (req, res) => {
             pais,
             cpf,
             nome_mae,
-            data_nascimento,
+            data_nascimento: birthDate,
             postbackUrl,
             status: 0,
-            motivo_status: 'Aguardando liberação'           
-        });        
+            motivo_status: 'Aguardando liberação',
+            agencia: account.agency,
+            conta: account.number,
+            banco: account.bankCode,
+            pix_key: account.pixKey,
+            id_seller: uuid
+        });
 
         const gateway = await Gateway.findOne({ where: { id: newSubcontaSeller.id_gateway } });
 
+        // Cria o saldo apenas para subcontas novas
         await SaldoGateway.create({
             val_disponivel: 0,
             val_reserva: 0,
-            id_seller: newSubcontaSeller.id,
+            id_seller: newSubcontaSeller.id_seller,
             id_gateway: gateway.id,
             id_usuario: gateway.user_id
         });
 
         res.status(201).json({ message: 'Subconta Seller created successfully', data: newSubcontaSeller });
     } catch (error) {
-        console.error('Error creating subconta seller:', error);
-        res.status(500).json({ message: 'Failed to create subconta seller', error });
+        console.error('Error:', error);
+        res.status(500).json({ message: 'Failed to create or update subconta seller', error });
     }
 });
+
+
 
 router.post('/update-subconta', async (req, res) => {
     const { id_subconta, status } = req.body;

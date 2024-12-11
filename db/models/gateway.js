@@ -30,7 +30,7 @@ const Gateway = sequelize.define('gateway', {
   token_id: { type: DataTypes.STRING, allowNull: true },
   status: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
   ds_status: { type: DataTypes.STRING, allowNull: true, defaultValue: 'Aguardando.' },
-  sing_up_step: {type: DataTypes.INTEGER, defaultValue: 1}
+  sing_up_step: {type: DataTypes.INTEGER, defaultValue: 1},  
 
 }, {
   timestamps: true, // Isso gerencia createdAt e updatedAt automaticamente
