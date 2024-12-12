@@ -126,71 +126,98 @@ const { v4: uuidv4 } = require('uuid');
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Subconta criada com sucesso"
+ *                   example: "Subconta Seller created successfully"
  *                 data:
  *                   type: object
  *                   properties:
  *                     id:
  *                       type: integer
- *                       example: 123
- *                     id_seller:
- *                       type: integer
- *                       example: 456
+ *                       example: 2
  *                     id_gateway:
  *                       type: integer
- *                       example: 789
+ *                       example: 1
  *                     nome_fantasia:
  *                       type: string
- *                       example: "Loja Exemplo"
+ *                       example: "Rogerio Mes"
  *                     razao_social:
  *                       type: string
- *                       example: "Loja Exemplo LTDA"
+ *                       example: "Rogerinos"
  *                     cnpj:
  *                       type: string
- *                       example: "12345678000199"
+ *                       example: "43485794000138"
  *                     telefone:
  *                       type: string
- *                       example: "(11) 91234-5678"
+ *                       example: "47999950731"
  *                     email:
  *                       type: string
- *                       example: "contato@lojaexemplo.com"
+ *                       example: "gianbona15@gmail.com@gmail.com"
  *                     ticket_medio:
  *                       type: number
- *                       example: 500.50
+ *                       example: 50002
  *                     numero:
  *                       type: string
- *                       example: "123"
+ *                       example: "4001"
  *                     complemento:
  *                       type: string
- *                       example: "Sala 4"
+ *                       example: "casa1"
  *                     rua:
  *                       type: string
- *                       example: "Rua Exemplo"
+ *                       example: "erich jung2 "
  *                     bairro:
  *                       type: string
- *                       example: "Centro"
+ *                       example: "benedito3"
  *                     cidade:
  *                       type: string
- *                       example: "São Paulo"
+ *                       example: "INDAIAL1"
  *                     estado:
  *                       type: string
- *                       example: "SP"
+ *                       example: "RS"
  *                     pais:
  *                       type: string
  *                       example: "Brasil"
  *                     cpf:
  *                       type: string
- *                       example: "12345678900"
+ *                       example: "05642500902"
  *                     nome_mae:
  *                       type: string
- *                       example: "Maria Exemplo"
+ *                       example: "Maria Regina"
  *                     data_nascimento:
  *                       type: string
- *                       format: date
- *                       example: "1990-01-01"
+ *                       format: date-time
+ *                       example: "1985-02-01T03:00:00.000Z"
  *                     postbackUrl:
  *                       type: string
- *                       example: "https://meusite.com/webhook"
+ *                       example: "https://testani.com/teste-api"
+ *                     status:
+ *                       type: integer
+ *                       example: 0
+ *                     motivo_status:
+ *                       type: string
+ *                       example: "Aguardando liberação"
+ *                     agencia:
+ *                       type: string
+ *                       example: "0001"
+ *                     conta:
+ *                       type: string
+ *                       example: "44452675"
+ *                     banco:
+ *                       type: string
+ *                       example: "260"
+ *                     pix_key:
+ *                       type: string
+ *                       nullable: true
+ *                       example: null
+ *                     id_seller:
+ *                       type: string
+ *                       example: "65b47203-8fdc-4115-ad56-a782fd16051f"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-12-12T20:22:09.576Z"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-12-12T20:22:09.576Z"
  *       401:
  *         description: Token de autenticação ausente ou inválido
  *       403:
@@ -198,6 +225,7 @@ const { v4: uuidv4 } = require('uuid');
  *       500:
  *         description: Falha ao criar subconta seller
  */
+
 
 
 /**

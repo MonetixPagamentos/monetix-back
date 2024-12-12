@@ -18,7 +18,7 @@ const router = express.Router();
  * @swagger
  * /transactions/create-transaction:
  *   post:
- *     summary: Cria uma nova transação
+ *     summary: Cria uma nova transação (PIX ou CARTAO)
  *     description: Este endpoint permite a criação de uma nova transação com os detalhes fornecidos. Requer um token de autorização Bearer.
  *     tags:
  *       - Transaction
@@ -181,35 +181,133 @@ const router = express.Router();
  *               properties:
  *                 id:
  *                   type: string
+ *                   example: "ac4aeb24-6418-46a6-a6b8-1313704c66fb"
  *                   description: ID da transação criada.
- *                 amount:
- *                   type: number
- *                   description: O valor da transação.
+ *                 register:
+ *                   type: string
+ *                   format: date-time
+ *                   example: "2024-12-12T17:17:04.2215772"
+ *                   description: Data de registro da transação.
+ *                 sellerId:
+ *                   type: string
+ *                   example: "cb0a3eb9-85b2-43ad-a63b-18cd48122281"
+ *                   description: ID do vendedor.
+ *                 buyerId:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: ID do comprador.
+ *                 payerName:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Nome do pagador.
+ *                 payerDocument:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Documento do pagador.
+ *                 paymentWay:
+ *                   type: integer
+ *                   example: 5
+ *                   description: Método de pagamento (3 = PIX, 5 = CARTÃO).
  *                 description:
  *                   type: string
- *                   description: Uma descrição da transação.
- *                 expirationDate:
+ *                   example: "Venda"
+ *                   description: Descrição da transação.
+ *                 amount:
+ *                   type: number
+ *                   example: 2000
+ *                   description: Valor da transação em centavos.
+ *                 referenceId:
  *                   type: string
- *                   format: date
- *                   description: A data de expiração do cartão.
- *                 idOriginTransaction:
- *                   type: string
- *                   description: ID da transação de origem.
- *                 name:
- *                   type: string
- *                   description: Nome no cartão de crédito.
- *                 numbersInstallments:
+ *                   example: "3d664d71-247f-496e-8890-ff9297712b35"
+ *                   description: ID de referência da transação.
+ *                 status:
  *                   type: integer
- *                   description: Número de parcelas.
- *                 typePayment:
+ *                   example: 1
+ *                   description: Status da transação.
+ *                 error:
  *                   type: string
- *                   description: Tipo de pagamento.
- *                 payment_method:
+ *                   nullable: true
+ *                   example: null
+ *                   description: Erro ocorrido, se houver.
+ *                 frequency:
  *                   type: string
- *                   description: Método de pagamento.
- *                 postback_url:
+ *                   nullable: true
+ *                   example: null
+ *                   description: Frequência de pagamento, se aplicável.
+ *                 callbackUrl:
  *                   type: string
- *                   description: URL de postback do gateway.
+ *                   nullable: true
+ *                   example: null
+ *                   description: URL de callback.
+ *                 barcode:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Código de barras, se aplicável.
+ *                 pixCharge:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Detalhes do PIX, se aplicável.
+ *                 ted:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Detalhes de TED, se aplicável.
+ *                 link:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Link de pagamento, se aplicável.
+ *                 ecommerce:
+ *                   type: object
+ *                   properties:
+ *                     installments:
+ *                       type: integer
+ *                       example: 1
+ *                       description: Número de parcelas.
+ *                     card:
+ *                       type: string
+ *                       nullable: true
+ *                       example: null
+ *                       description: Detalhes do cartão.
+ *                     error:
+ *                       type: string
+ *                       nullable: true
+ *                       example: null
+ *                       description: Erro no ecommerce, se houver.
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *                       description: Indicador de sucesso do ecommerce.
+ *                 splits:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Detalhes de split, se aplicável.
+ *                 dueDate:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Data de vencimento, se aplicável.
+ *                 discount:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Detalhes de desconto, se aplicável.
+ *                 fine:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Detalhes de multa, se aplicável.
+ *                 interest:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
+ *                   description: Detalhes de juros, se aplicável.
  *       401:
  *         description: Token de autenticação ausente ou inválido.
  *       403:
