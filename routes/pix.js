@@ -8,17 +8,18 @@ const { Sequelize } = require('sequelize');
 router.post('/postback-pix-payment', async (req, res) => {
     try {
         const {
-            txid,
+            id,
             amount,
             payer,
             endToEndId,
             type,
-            status,
+            Status,
             paymentDate,
-            userReference
+            userReference,
+            ReferenceId 
         } = req.body;
 
-        const transaction = await Transactions.findOne({where:{ txid: userReference }});
+        const transaction = await Transactions.findOne({where:{ idOriginTransaction: id }});
 
         if(transaction.updated_balance == 1)  return res.status(201).json({message: 'DUPLICATE EVENT'});
 
@@ -30,7 +31,7 @@ router.post('/postback-pix-payment', async (req, res) => {
 
         var status_transaction;
 
-        if (status == 'SUCCESS') {
+        if (Status === 1 ) {
             status_transaction = 'PAID';
         } else {
             status_transaction = 'CANCELED'
@@ -42,7 +43,7 @@ router.post('/postback-pix-payment', async (req, res) => {
                 payment_date: paymentDate
             },
             {
-                where: { txid: userReference }
+                where: { idOriginTransaction: id }
             }
         );
 
@@ -52,6 +53,7 @@ router.post('/postback-pix-payment', async (req, res) => {
                 await updateBalance(transaction.id);
             }
         }
+
         try{
 
             if (transaction.postback_url) {
@@ -61,15 +63,7 @@ router.post('/postback-pix-payment', async (req, res) => {
                         'accept': 'application/json',
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        txid,
-                        amount,
-                        payer,
-                        endToEndId,
-                        type,
-                        status,
-                        paymentDate
-                    })
+                    body: req.body
                 });
             }
         }catch(error){

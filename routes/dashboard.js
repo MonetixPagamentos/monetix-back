@@ -226,7 +226,7 @@ router.get('/subconta/:id_gateway', async (req, res) => {
             `
             SELECT SUM(b.val_disponivel - b.val_saque) AS saldo, a.*
             FROM subconta_sellers a
-            INNER JOIN saldo_gateways b ON b.id_seller = a.id
+            INNER JOIN saldo_gateways b ON b.id_seller = a.id_seller
             WHERE a.id_gateway = :id_gateway
             GROUP BY a.id
             `,

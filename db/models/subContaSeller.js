@@ -1,5 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../connection');
+const { toDefaultValue } = require('sequelize/lib/utils');
 
 const SubContaSeller = sequelize.define('subconta_seller', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -24,7 +25,7 @@ const SubContaSeller = sequelize.define('subconta_seller', {
     postbackUrl: { type: DataTypes.STRING, allowNull: true },
     status: { type: DataTypes.STRING, allowNull: false },
     motivo_status: { type: DataTypes.STRING, allowNull: true },
-    integridade: {type: DataTypes.INTEGER},    
+    integridade: {type: DataTypes.INTEGER, toDefaultValue: 10},    
     agencia: {type: DataTypes.STRING},    
     conta: {type: DataTypes.STRING},
     banco: {type: DataTypes.STRING},

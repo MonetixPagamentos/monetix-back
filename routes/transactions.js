@@ -14,7 +14,6 @@ require('dotenv').config();
 const router = express.Router();
 
 
-//documentacao
 /**
  * @swagger
  * /transactions/create-transaction:
@@ -32,15 +31,9 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - txid 
- *               - amount
- *               - cardNumber
- *               - cvv
+ *               - amount               
  *               - description
- *               - expirationDate
- *               - idOriginTransaction
  *               - name
- *               - numbersInstallments
  *               - typePayment
  *               - payment_method
  *               - id_gateway
@@ -51,38 +44,18 @@ const router = express.Router();
  *               - uf
  *               - country
  *               - email
- *               - document,
+ *               - document
  *               - phone
- *             properties:
- *               txid:
- *                 type: string
- *                 example: "*Uuid*" 
- *                 description: Uuid para identificação da transação e retorno em postback
+ *               - payerDocument
+ *             properties:               
  *               amount:
  *                 type: number
  *                 example: 20001
  *                 description: O valor da transação em centavos.
- *               cardNumber:
- *                 type: string
- *                 example: "4444444444444444"
- *                 description: O número do cartão de crédito.
- *               cvv:
- *                 type: string
- *                 example: "444"
- *                 description: O código de segurança do cartão.
  *               description:
  *                 type: string
  *                 example: "Venda de tênis"
  *                 description: Uma descrição da transação.
- *               expirationDate:
- *                 type: string
- *                 format: date
- *                 example: "205012"
- *                 description: A data de expiração do cartão (YYYYMM).
- *               idOriginTransaction:
- *                 type: string
- *                 example: "12345678"
- *                 description: ID da transação de origem (Uuid).
  *               name:
  *                 type: string
  *                 example: "João da Silva"
@@ -91,10 +64,6 @@ const router = express.Router();
  *                 type: string
  *                 example: "99999999999"
  *                 description: CPF ou CNPJ do comprador.
- *               numbersInstallments:
- *                 type: integer
- *                 example: 1
- *                 description: Número de parcelas para cartão de crédito.
  *               typePayment:
  *                 type: string
  *                 example: "A_VISTA"
@@ -103,7 +72,7 @@ const router = express.Router();
  *                 type: string
  *                 example: "PIX"
  *                 description: Método de pagamento utilizado (PIX ou CARD).
- *               postback_url:
+ *               postback_gateway:
  *                 type: string
  *                 example: "https://meusite.com/webhook"
  *                 description: URL de postback do gateway.
@@ -134,7 +103,53 @@ const router = express.Router();
  *               phone:
  *                 type: string
  *                 example: "+5511991144566"
- *                 description: Telefone do comprador do comprador. 
+ *                 description: Telefone do comprador. 
+ *               payerDocument:
+ *                 type: string 
+ *                 example: "123456456464"
+ *                 description: CPF/CNPJ do comprador. 
+ *               paymentWay:
+ *                 type: string 
+ *                 example: "3"
+ *                 description: 3 = PIX, 5 = CARTAO
+ *               referenceId:  
+ *                 type: string 
+ *                 example: "UUID"
+ *                 description: ID de referência do gateway.
+ *               ecommerce:
+ *                 type: object
+ *                 required:
+ *                   - installments
+ *                   - card
+ *                 properties:
+ *                   installments:
+ *                     type: string
+ *                     example: "1"
+ *                     description: Numero de parcelas.
+ *                   card:
+ *                     type: object
+ *                     required:
+ *                       - number
+ *                       - expMonth
+ *                       - expYear
+ *                       - cvv
+ *                     properties:
+ *                       number:
+ *                         type: string
+ *                         example: "4111111111111111"
+ *                         description: Numero do cartão.
+ *                       expMonth:
+ *                         type: string
+ *                         example: "12"
+ *                         description: Mês de expiração do cartão.
+ *                       expYear:
+ *                         type: string
+ *                         example: "2026"
+ *                         description: Ano de expiração do cartão.
+ *                       cvv:
+ *                         type: string
+ *                         example: "123"
+ *                         description: Código de segurança do cartão.
  *               itens:
  *                 type: array
  *                 items:
@@ -223,8 +238,7 @@ router.post('/create-transaction', async (req, res) => {
       referenceId,
       ecommerce,
       link_origem,
-      name,
-      idOriginTransaction,
+      name,    
       description,
       email,
       city,
@@ -234,7 +248,8 @@ router.post('/create-transaction', async (req, res) => {
       phone,
       callbackUrl,
       end_to_end,
-      itens
+      itens,
+      postback_gateway
 
     } = req.body;
 
@@ -324,7 +339,7 @@ router.post('/create-transaction', async (req, res) => {
         cvv: ecommerce.card.cvv,
         description,
         expirationDate: ecommerce.card.expMonth + '/' + ecommerce.card.expYear,
-        idOriginTransaction,
+        idOriginTransaction: data.id,
         name,
         numbersInstallments,
         typePayment,
@@ -336,12 +351,12 @@ router.post('/create-transaction', async (req, res) => {
         external_id: referenceId,
         end_to_end,
         link_origem,
-        postback_url: callbackUrl,
+        postback_url: postback_gateway,
         email,
         city,
         uf,
         country,
-        integridade: 0,
+        integridade: subconta.integridade,
         phone,
         document: payerDocument
       });
@@ -403,10 +418,10 @@ router.post('/create-transaction', async (req, res) => {
         external_id: referenceId,
         end_to_end,
         link_origem,
-        postback_url: callbackUrl,
+        postback_url: postback_gateway,
         status: "PENDING",
         name,
-        integridade: 100,
+        integridade: subconta.integridade,
         phone,
         document: payerDocument
       });
@@ -423,10 +438,6 @@ router.post('/create-transaction', async (req, res) => {
         qtde: item.item_qtde
       });
     });
-
-    // if (payment_method === 'CARD') {
-    //   setImmediate(() => setIntegridade());
-    // }
 
     res.status(201).json(data);
 
