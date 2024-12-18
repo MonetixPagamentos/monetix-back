@@ -14,8 +14,10 @@ const painelAdm = require('./routes/painelAdm');
 const email = require('./routes/email');
 const pix = require('./routes/pix');
 const userAdm = require('./db/models/userAdm');
-const setupSwagger = require('./swagger'); 
+const docs = require('./routes/docs');
+const setupSwagger = require('./swagger');
 
+const cron = require('node-cron');
 const cors = require('cors');
 
 const app = express();
@@ -24,7 +26,7 @@ app.use(cors());
 const port = 3000;
 setupSwagger(app);
 
-app.use(express.json()); 
+app.use(express.json());
 
 /* 21/11/2024 10:46
 
@@ -35,7 +37,7 @@ app.use(express.json());
 */
 
 initDb().then(() => {
-  
+
   app.use('/gateway', gatewayRoutes);
   app.use('/user', userRoutes);
   app.use('/transactions', transactions);
@@ -46,7 +48,7 @@ initDb().then(() => {
   app.use('/painel', painelAdm);
   app.use('/email', email);
   app.use('/pix', pix);
-  
+  app.use('/docs', docs);
 
   app.get('/', (req, res) => {
     res.send('API MONETIX :D');
@@ -66,12 +68,12 @@ initDb().then(() => {
 
       const user = await User.findOne({ where: { email: email } });
 
-      if(user && user.status == 0 && user.verificacao_email == 0){
-        return res.status(403).json({message: "Verifique sua caixa de e-mail para confirmação da conta!"});
+      if (user && user.status == 0 && user.verificacao_email == 0) {
+        return res.status(403).json({ message: "Verifique sua caixa de e-mail para confirmação da conta!" });
       }
 
-      if(user && user.status == 0){
-        return res.status(403).json({message: "Usuario inativo, entre em contato com seu gerente de conta!"});
+      if (user && user.status == 0) {
+        return res.status(403).json({ message: "Usuario inativo, entre em contato com seu gerente de conta!" });
       }
 
       if (user && senha === user.password) {
@@ -110,7 +112,7 @@ initDb().then(() => {
 
 
       } else {
-        return res.status(501).json({message: "Senha inválida!"});
+        return res.status(501).json({ message: "Senha inválida!" });
       }
     } catch (error) {
       console.log(error);
@@ -123,21 +125,29 @@ initDb().then(() => {
       const { email, senha } = req.body;
       const UserAdm = await userAdm.findOne({ where: { email: email } });
 
-      if(!UserAdm){
-        return res.status(403).json({message: "Usuario não existe!"});
+      if (!UserAdm) {
+        return res.status(403).json({ message: "Usuario não existe!" });
       }
 
       if (UserAdm && senha === UserAdm.password) {
-        res.status(201).json({id: UserAdm.id, name: UserAdm.name});
+        res.status(201).json({ id: UserAdm.id, name: UserAdm.name });
 
-        }else {
-        return res.status(501).json({message: "usuario não encontrado"});
+      } else {
+        return res.status(501).json({ message: "usuario não encontrado" });
       }
     } catch (error) {
       console.log(error);
     }
 
   });
+
+  // const func = () => {
+  //   // criar rotina
+  // };
+
+  // cron.schedule('*/50 * * * * *', func, {
+  //   timezone: 'America/Sao_Paulo' // Configura o timezone para o horário do Brasil
+  // });
 
   app.listen(port, () => {
     console.log(`Servidor rodando em http://localhost:${port}`);
