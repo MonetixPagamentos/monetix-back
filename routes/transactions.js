@@ -10,6 +10,7 @@ const SubContaSeller = require('../db/models/subContaSeller');
 const sequelize = require('../db/connection');
 const IACortex = require('../db/models/IACortex');
 const { getTokenInfratec } = require('../components/functions');
+const ProcessamentoCortex = require('../db/models/processamento_cortex');
 require('dotenv').config();
 const router = express.Router();
 
@@ -38,7 +39,7 @@ const router = express.Router();
  *               - payment_method
  *               - id_gateway
  *               - postback_gateway
- *               - sellerId
+ *               - id_seller
  *               - link_origem
  *               - city
  *               - uf
@@ -76,9 +77,9 @@ const router = express.Router();
  *                 type: string
  *                 example: "https://meusite.com/webhook"
  *                 description: URL de postback do gateway.
- *               sellerId:
+ *               id_seller:
  *                 type: integer
- *                 example: 1
+ *                 example: "token do vendendor"
  *                 description: ID da subconta do vendedor.
  *               link_origem:
  *                 type: string
@@ -188,7 +189,7 @@ const router = express.Router();
  *                   format: date-time
  *                   example: "2024-12-12T17:17:04.2215772"
  *                   description: Data de registro da transação.
- *                 sellerId:
+ *                 id_seller:
  *                   type: string
  *                   example: "cb0a3eb9-85b2-43ad-a63b-18cd48122281"
  *                   description: ID do vendedor.
@@ -336,7 +337,7 @@ router.post('/create-transaction', async (req, res) => {
       referenceId,
       ecommerce,
       link_origem,
-      name,    
+      name,
       description,
       email,
       city,
@@ -361,7 +362,7 @@ router.post('/create-transaction', async (req, res) => {
     const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
 
     if (!tokenRecord)
-      return res.status(403).json({ message: "Token inexistente ou intativo!" });
+      return res.status(403).json({ message: "Token inexistente ou inatativo!" });
 
 
     const subconta = await SubContaSeller.findOne({ where: { id_seller: id_seller, id_gateway: tokenRecord.id_gateway } });
@@ -464,6 +465,27 @@ router.post('/create-transaction', async (req, res) => {
         if (refreshSaldo) {
           updateBalance(transaction.id);
         }
+        
+        var produtoCortex = '';        
+        await itens.forEach((item) => {
+          if(produtoCortex === ''){
+            produtoCortex = item.item_description; 
+          }else{
+            produtoCortex = produtoCortex + ' - ' + item.item_description 
+          }          
+        });
+
+        await ProcessamentoCortex.create({
+          id_transaction: transaction.id,
+          nome: name,
+          email: email,
+          cidade: city,
+          estado: uf,
+          telefone: phone,        
+          produtos: produtoCortex,
+          valor_total: transaction.amount,
+          document: payerDocument
+        });
       }
 
     } else if (paymentWay === 3)/*PIX*/ {

@@ -12,6 +12,7 @@ const TransactionItem = require('./models/transactionItem');
 const UserAdm = require('./models/userAdm');
 const IACortex = require('./models/IACortex');
 const { version } = require('@babel/core');
+const ProcessamentoCortex = require('./models/processamento_cortex');
 
 const initDb = async () => {
   try {    
@@ -29,6 +30,7 @@ const initDb = async () => {
     await TransactionItem.sync();
     await UserAdm.sync();
     await IACortex.sync();
+    await ProcessamentoCortex.sync();
     
   } catch (err) {
     console.error('Erro ao inicializar o banco de dados:', err);
