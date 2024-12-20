@@ -567,6 +567,44 @@ router.post('/create-transaction', async (req, res) => {
   }
 });
 
+router.put('/transaction-cancel/:id_transaction', async (req, res) => {
+  const { id_transaction } = req.params.id_transaction; 
+  const url = `https://qas.triacom.com.br/api/charges/partners/sales/refund/${id_transaction}`;
+  
+  if (!id_transaction) {
+    return res.status(400).json({ error: 'id_transaction is required' });
+  }
+
+
+  const tokenInfratec = await getTokenInfratec();
+  const token = 'Bearer ' + tokenInfratec.access_token;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token,
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip,deflate,br',
+        'Connection': 'keep-alive'
+      }      
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return res.status(response.status).json({ error });
+    }
+
+    const data = await response.json();
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error('Error cancelling transaction:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+
 //documentacao
 /**
  * @swagger
