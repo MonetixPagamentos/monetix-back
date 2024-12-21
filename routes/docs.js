@@ -27,7 +27,8 @@ router.post('/cadastro-cliente', async (req, res) => {
         conta,
         tipo_conta,
         nome_mae,
-        tipo_servico
+        tipo_servico,
+        nome_gateway
     } = req.body;
     
     try {
@@ -55,7 +56,8 @@ router.post('/cadastro-cliente', async (req, res) => {
             conta,
             tipo_conta,
             nome_mae,
-            tipo_servico
+            tipo_servico,
+            nome_gateway
         });
     
         res.status(201).json({
