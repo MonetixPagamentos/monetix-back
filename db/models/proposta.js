@@ -8,6 +8,7 @@ const Proposta = sequelize.define('proposta', {
     telefone: { type: DataTypes.STRING }, 
     cpf: { type: DataTypes.STRING}, 
     dt_nasc: { type: DataTypes.STRING}, 
+    nome_mae: { type: DataTypes.STRING}, 
     razao_social: { type: DataTypes.STRING}, 
     nome_fantasia: { type: DataTypes.STRING},
     cnpj: { type: DataTypes.STRING}, 
@@ -25,6 +26,7 @@ const Proposta = sequelize.define('proposta', {
     agencia: { type: DataTypes.STRING },
     conta: { type: DataTypes.STRING }, 
     tipo_conta: { type: DataTypes.STRING}, 
+    tipo_servico: { type: DataTypes.STRING}, 
 }, {
     timestamps: true, 
     underscored: true, 
