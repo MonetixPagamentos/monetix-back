@@ -27,6 +27,7 @@ const Proposta = sequelize.define('proposta', {
     conta: { type: DataTypes.STRING }, 
     tipo_conta: { type: DataTypes.STRING}, 
     tipo_servico: { type: DataTypes.STRING}, 
+    nome_gateway:{ type: DataTypes.STRING},
 }, {
     timestamps: true, 
     underscored: true, 
