@@ -22,12 +22,18 @@ async function getTokenAstraPay() {
 
 async function getTokenInfratec() {
     const params = new URLSearchParams();
-    params.append('client_id', '2593cb50-aeb2-4e98-b3d0-5b2cedb0803b');
-    params.append('client_secret', '528f5f9f-df66-4bf3-9523-583819154211');
-    params.append('scope', 'demonstracao offline_access');
+    const client_id = process.env.INFRATEC_CLIENT_ID;
+    const username = process.env.INFRATEC_USERNAME;
+    const client_secret = process.env.INFRATEC_SECRET_ID;
+    const scope = process.env.INFRATEC_SCOPE;
+    const password = process.env.INFRATEC_PASSWORD;
+    
+    params.append('client_id', client_id);
+    params.append('client_secret', client_secret);
+    params.append('scope', scope);
     params.append('grant_type', 'password');
-    params.append('username', 'demonstracao');
-    params.append('password', 'c909d7ee-33d2-4869-803b-02c55cdffaae');
+    params.append('username', username);
+    params.append('password', password);
 
     try {
         const response = await fetch(process.env.INFRATEC_API_TOKEN+'/connect/token', {
