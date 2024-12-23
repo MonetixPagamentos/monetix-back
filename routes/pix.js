@@ -5,6 +5,79 @@ const SaldoGateway = require('../db/models/saldoGateway');
 const TaxaGateway = require('../db/models/taxaGateway');
 const { Sequelize } = require('sequelize');
 
+
+/**
+ * @swagger
+ * /:
+ *   post:
+ *     summary:
+ *     description: Webhook de atualização da transação PIX, vai retornar no seu postback enviado na transação.
+ *     tags:
+ *       - Webhook PIX
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Transação cancelada com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Indica se a operação foi bem-sucedida.
+ *                 message:
+ *                   type: string
+ *                   description: Mensagem de retorno.
+ *                 data:
+ *                   type: object
+ *                   description: Dados adicionais sobre a transação cancelada.
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: ID da transação.
+ *                     sellerId:
+ *                       type: string
+ *                       description: ID do vendedor associado à transação.
+ *                     payerDocument:
+ *                       type: string
+ *                       description: Documento do pagador.
+ *                     paymentWay:
+ *                       type: integer
+ *                       description: Forma de pagamento.
+ *                     description:
+ *                       type: string
+ *                       description: Descrição da transação.
+ *                     amount:
+ *                       type: number
+ *                       description: Valor da transação.
+ *                     referenceId:
+ *                       type: string
+ *                       description: ID de referência associado à transação.
+ *                     status:
+ *                       type: integer
+ *                       description: Status da transação.
+ *                       enum:
+ *                         - 0 Aberta
+ *                         - 1 Finalizada
+ *                         - 2 Erro
+ *                         - 3 Cancelada
+ *                         - 4 Estornada
+ *                         - 5 Bloqueada
+ *       500:
+ *         description: Erro interno do servidor.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Detalhes do erro.
+ */
+
+
 router.post('/postback-pix-payment', async (req, res) => {
     try {
         const {

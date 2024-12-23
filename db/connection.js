@@ -24,16 +24,16 @@ if (process.env.HOMOLOG == 0) { //homolog
     },
       timezone: '-03:00'
   });
-} else if (process.env.HOMOLOG == 2) { // prod
-  sequelize = new Sequelize('defaultdb', 'doadmin', 'AVNS_km51tKNzBd4nJ0KMoEG', {
-    host: 'modetix-prod-do-user-18325952-0.i.db.ondigitalocean.com',
+} else if (process.env.HOMOLOG == 2) { // sandobox
+  sequelize = new Sequelize('monetix', 'doadmin', 'AVNS_X5grNxqGgswGOQFZqqQ', {
+    host: 'db-mysql-nyc1-39828-do-user-18325952-0.f.db.ondigitalocean.com',
     dialect: 'mysql',
     port: 25060,
     dialectOptions: {
       ssl: {
         require: true,
         rejectUnauthorized: false,
-        ca: fs.readFileSync(path.join(__dirname, 'ca-monetix-db.crt'))
+        ca: fs.readFileSync(path.join(__dirname, 'ca-certificate-sandbox.crt'))
       }
     },
       timezone: '-03:00'
