@@ -5,9 +5,13 @@ const swaggerOptions = {
     swaggerDefinition: {
         openapi: '3.0.0',
         info: {
-            title: 'API Documentation',
+            title: 'Documentação',
             version: '1.0.0',
-            description: 'Documentação da API com segurança',
+            description: 'Documentação Monetix',
+        },
+        contact: {
+            name: 'Equipe Monetix',
+            email: 'suporte@monetixpagamentos.com',
         },
         servers: [
             {
@@ -38,9 +42,15 @@ const swaggerOptions = {
 
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
-
 const setupSwagger = (app) => {
-    app.use('/documentacao-monetix', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+    app.use('/documentacao-monetix', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {
+        customCss: `
+            .swagger-ui .topbar { background-color: #28932b; }
+            .swagger-ui .info .title { color: #28932b; font-family: 'Arial', sans-serif; }
+        `,
+        customSiteTitle: 'Documentação Monetix',
+        // customfavIcon: '/img/favicon.ico', // Opcional: Favicon personalizado
+    }));
 };
 
 module.exports = setupSwagger;
