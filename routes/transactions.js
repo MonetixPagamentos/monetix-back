@@ -567,6 +567,82 @@ router.post('/create-transaction', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /transaction-cancel/{id_transaction}:
+ *   put:
+ *     summary: Cancela uma transação
+ *     description: Este endpoint permite cancelar uma transação específica utilizando o ID da transação, Requer um token de autenticação Bearer.
+ *     tags:
+ *       - Transaction
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id_transaction
+ *         required: true
+ *         description: O ID da transação a ser cancelada.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Transação cancelada com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Indica se a operação foi bem-sucedida.
+ *                 message:
+ *                   type: string
+ *                   description: Mensagem de retorno.
+ *                 data:
+ *                   type: object
+ *                   description: Dados adicionais sobre a transação cancelada.
+ *       400:
+ *         description: ID da transação não fornecido ou inválido.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Detalhes do erro.
+ *       401:
+ *         description: Não autorizado - Token inválido ou ausente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Token de autenticação ausente ou inválido.
+ *       403:
+ *         description: Proibido - Token inexistente ou inativo.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Detalhes do motivo da proibição.
+ *       500:
+ *         description: Erro interno do servidor.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Detalhes do erro.
+ */
+
 router.put('/transaction-cancel/:id_transaction', async (req, res) => {
   const { id_transaction } = req.params.id_transaction; 
   const url = `https://qas.triacom.com.br/api/charges/partners/sales/refund/${id_transaction}`;
@@ -574,6 +650,18 @@ router.put('/transaction-cancel/:id_transaction', async (req, res) => {
   if (!id_transaction) {
     return res.status(400).json({ error: 'id_transaction is required' });
   }
+
+  const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+    }
+
+    const tokenBearer = authHeader.split(' ')[1];
+
+    const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+
+    if (!tokenRecord)
+      return res.status(403).json({ message: "Token inexistente ou inatativo!" });
 
 
   const tokenInfratec = await getTokenInfratec();
@@ -610,88 +698,126 @@ router.put('/transaction-cancel/:id_transaction', async (req, res) => {
  * @swagger
  * /transactions-gateway:
  *   get:
- *     summary: Obtém transações por ID do gateway
- *     description: Este endpoint permite buscar transações associadas a um gateway específico, fornecendo o ID do gateway como parâmetro de consulta.
+ *     summary: Obtém transações do gateway. 
+ *     description: Este endpoint permite buscar transações associadas a um gateway específico, Requer um token de autenticação Bearer.
  *     tags:
  *       - Transaction
  *     security:
  *       - BearerAuth: []
- *     parameters:
- *       - in: query
- *         name: id_gateway
- *         required: true
- *         description: O ID do gateway para buscar as transações.
- *         schema:
- *           type: string
  *     responses:
  *       200:
  *         description: Transações encontradas com sucesso.
  *         content:
  *           application/json:
  *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: ID da transação.
+ *                   amount:
+ *                     type: number
+ *                     description: Valor da transação.
+ *                   cardNumber:
+ *                     type: string
+ *                     description: Número do cartão de crédito.
+ *                   cvv:
+ *                     type: string
+ *                     description: Código de segurança do cartão.
+ *                   description:
+ *                     type: string
+ *                     description: Uma descrição da transação.
+ *                   expirationDate:
+ *                     type: string
+ *                     format: date
+ *                     description: Data de expiração do cartão.
+ *                   idOriginTransaction:
+ *                     type: string
+ *                     description: ID da transação de origem.
+ *                   name:
+ *                     type: string
+ *                     description: Nome no cartão de crédito ou do comprador (em caso de pix).
+ *                   numbersInstallments:
+ *                     type: integer
+ *                     description: Número de parcelas.
+ *                   typePayment:
+ *                     type: string
+ *                     description: Tipo de pagamento.
+ *                   payment_method:
+ *                     type: string
+ *                     description: Método de pagamento.
+ *                   token_gateway:
+ *                     type: string
+ *                     description: Token gerado pelo gateway de pagamento.
+ *                   id_gateway:
+ *                     type: string
+ *                     description: ID do gateway de pagamento.
+ *                   postback_gateway:
+ *                     type: string
+ *                     description: URL de postback do gateway.
+ *       401:
+ *         description: Não autorizado - Token inválido ou ausente.
+ *         content:
+ *           application/json:
+ *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 error:
  *                   type: string
- *                   description: ID da transação.
- *                 amount:
- *                   type: number
- *                   description: Valor da transação.
- *                 cardNumber:
+ *                   description: Token de autenticação ausente ou inválido.
+ *       403:
+ *         description: Proibido - Token inexistente ou inativo.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
  *                   type: string
- *                   description: Número do cartão de crédito.
- *                 cvv:
- *                   type: string
- *                   description: Código de segurança do cartão.
- *                 description:
- *                   type: string
- *                   description: Uma descrição da transação.
- *                 expirationDate:
- *                   type: string
- *                   format: date
- *                   description: Data de expiração do cartão.
- *                 idOriginTransaction:
- *                   type: string
- *                   description: ID da transação de origem.
- *                 name:
- *                   type: string
- *                   description: Nome no cartão de crédito ou do comprador (em caso de pix)
- *                 numbersInstallments:
- *                   type: integer
- *                   description: Número de parcelas.
- *                 typePayment:
- *                   type: string
- *                   description: Tipo de pagamento.
- *                 payment_method:
- *                   type: string
- *                   description: Método de pagamento.
- *                 token_gateway:
- *                   type: string
- *                   description: Token gerado pelo gateway de pagamento.
- *                 id_gateway:
- *                   type: string
- *                   description: ID do gateway de pagamento.
- *                 postback_gateway:
- *                   type: string
- *                   description: URL de postback do gateway.
+ *                   description: Detalhes do motivo da proibição.
  *       400:
- *         description: ID do gateway não fornecido.
- *       404:
  *         description: Nenhuma transação encontrada para o ID fornecido.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Detalhes sobre a ausência de transações.
  *       500:
  *         description: Erro ao buscar transações.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Detalhes do erro.
  */
 
 router.get('/transactions-gateway', async (req, res) => {
-  const { id_gateway } = req.query;
   try {
-    if (!id_gateway) {
-      return res.status(400).json({ error: 'id_gateway é obrigatório' });
+
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
     }
-    const transactions = await Transactions.findAll({ where: { id_gateway: id_gateway } });
+
+    const tokenBearer = authHeader.split(' ')[1];
+
+    const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+
+    if (!tokenRecord)
+      return res.status(403).json({ message: "Token inexistente ou inatativo!" });
+
+    const transactions = await Transactions.findAll({ where: { id_gateway: tokenRecord.id_gateway } });
 
     if (transactions.length === 0) {
-      return res.status(404).json({ message: 'Nenhuma transação encontrada' });
+      return res.status(400).json({ message: 'Nenhuma transação encontrada' });
     }
 
     return res.status(200).json(transactions);

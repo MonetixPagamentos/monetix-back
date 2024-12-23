@@ -9,14 +9,8 @@ router.post('/postback-pix-payment', async (req, res) => {
     try {
         const {
             id,
-            amount,
-            payer,
-            endToEndId,
-            type,
             Status,
-            paymentDate,
-            userReference,
-            ReferenceId 
+            paymentDate
         } = req.body;
 
         const transaction = await Transactions.findOne({where:{ idOriginTransaction: id }});
