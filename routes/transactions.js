@@ -508,7 +508,7 @@ router.post('/create-transaction', async (req, res) => {
           paymentWay,
           description,
           payerDocument,
-          callbackUrl
+          callbackUrl: process.env.API_BASE_URL+'/pix/postback-pix-payment'
         })
       });
 

@@ -85,7 +85,8 @@ router.post('/postback-pix-payment', async (req, res) => {
             Status,
             paymentDate
         } = req.body;
-
+        console.log('Entrou no postback-pix-payment');
+        console.log(req.body);
         const transaction = await Transactions.findOne({where:{ idOriginTransaction: id }});
 
         if(transaction.updated_balance == 1)  return res.status(201).json({message: 'DUPLICATE EVENT'});
@@ -122,7 +123,7 @@ router.post('/postback-pix-payment', async (req, res) => {
         }
 
         try{
-
+            console.log('Enviado POSTBACK para ----> '+ transaction.postback_url)    
             if (transaction.postback_url) {
                 const response = await fetch(transaction.postback_url, {
                     method: 'POST',
