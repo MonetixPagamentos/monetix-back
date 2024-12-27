@@ -412,6 +412,7 @@ router.post('/create-transaction', async (req, res) => {
         data = await response.json();
       } else {
         const text = await response.text();
+        console.log(text);
         return res.status(500).json({ error: "Erro ao criar transação. " + text });
       }
 
