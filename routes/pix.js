@@ -81,14 +81,14 @@ const { Sequelize } = require('sequelize');
 router.post('/postback-pix-payment', async (req, res) => {
     try {
         const {
-            id,
+            Id,
             Status,
-            paymentDate
+            PixCharge
         } = req.body;
         console.log('Entrou no postback-pix-payment');
         console.log(req.body);
         console.log('buscando transacao');
-        const transaction = await Transactions.findOne({where:{ idOriginTransaction: id }});
+        const transaction = await Transactions.findOne({where:{ idOriginTransaction: Id }});
         console.log('buscou transacao');
         console.log(transaction);
 
@@ -111,10 +111,10 @@ router.post('/postback-pix-payment', async (req, res) => {
         const transStatus = await Transactions.update(
             {
                 status: status_transaction,
-                payment_date: paymentDate
+                payment_date: PixCharge.DueDate
             },
             {
-                where: { idOriginTransaction: id }
+                where: { idOriginTransaction: Id }
             }
         );
 
