@@ -87,7 +87,10 @@ router.post('/postback-pix-payment', async (req, res) => {
         } = req.body;
         console.log('Entrou no postback-pix-payment');
         console.log(req.body);
+        console.log('buscando transacao');
         const transaction = await Transactions.findOne({where:{ idOriginTransaction: id }});
+        console.log('buscou transacao');
+        console.log(transaction);
 
         if(transaction.updated_balance == 1)  return res.status(201).json({message: 'DUPLICATE EVENT'});
 
