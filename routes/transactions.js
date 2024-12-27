@@ -379,6 +379,16 @@ router.post('/create-transaction', async (req, res) => {
     const token = 'Bearer ' + tokenInfratec.access_token;
     if (paymentWay === 5) {
 
+      const bodyx = {
+        sellerId: tokenRecord.token,
+          amount,
+          referenceId,
+          paymentWay,
+          description,
+          ecommerce
+      }
+      console.log(bodyx);
+
       const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/sales`, {
         method: 'POST',
         headers: {
