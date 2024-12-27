@@ -378,7 +378,7 @@ router.post('/create-transaction', async (req, res) => {
     const tokenInfratec = await getTokenInfratec();
     const token = 'Bearer ' + tokenInfratec.access_token;
     if (paymentWay === 5) {
-
+      console.log('entrou')
       const bodyx = {
         sellerId: tokenRecord.token,
           amount,
