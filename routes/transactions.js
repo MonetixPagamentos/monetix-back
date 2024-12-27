@@ -124,8 +124,8 @@ const router = express.Router();
  *                   - card
  *                 properties:
  *                   installments:
- *                     type: string
- *                     example: "1"
+ *                     type: integer
+ *                     example: 1
  *                     description: Numero de parcelas.
  *                   card:
  *                     type: object
@@ -140,12 +140,12 @@ const router = express.Router();
  *                         example: "4111111111111111"
  *                         description: Numero do cartão.
  *                       expMonth:
- *                         type: string
- *                         example: "12"
+ *                         type: integer
+ *                         example: 12
  *                         description: Mês de expiração do cartão.
  *                       expYear:
- *                         type: string
- *                         example: "2026"
+ *                         type: integer
+ *                         example: 2026
  *                         description: Ano de expiração do cartão.
  *                       cvv:
  *                         type: string
