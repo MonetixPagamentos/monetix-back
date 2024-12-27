@@ -412,10 +412,11 @@ router.post('/create-transaction', async (req, res) => {
         data = await response.json();
       } else {
         const text = await response.text();
-        return res.status(500).json({ error: "Erro ao criar transação. " + text });
+        console.log(text);
+        return res.status(201).json({ Status : 2, text: 'Erro: ' + text });
       }
 
-      if (!data) return res.status(400).json({ error: "Falha no pagamento com cartão" });
+      if (!data) return res.status(201).json({ Status : 2, text: 'Erro: Falha no pagamento com cartão' });
     
       payment_method = 'CARD';
      
