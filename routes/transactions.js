@@ -400,12 +400,6 @@ router.post('/create-transaction', async (req, res) => {
 
       if (response.headers.get('Content-Type')?.includes('application/json')) {
         data = await response.json();
-        
-        if(data.ecommerce.card.number === '4444555566667777'){
-          data.status = 2;
-          return res.status(200).json(data);
-        }
-
       } else {
         const text = await response.text();
         return res.status(500).json({ error: "Erro ao criar transação. " + text });
