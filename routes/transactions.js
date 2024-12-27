@@ -353,7 +353,7 @@ router.post('/create-transaction', async (req, res) => {
     } = req.body;
 
     console.log(req.body);
-  
+    console.log('');
     const authHeader = req.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
