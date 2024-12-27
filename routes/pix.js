@@ -134,7 +134,7 @@ router.post('/postback-pix-payment', async (req, res) => {
                         'accept': 'application/json',
                         'Content-Type': 'application/json',
                     },
-                    body: req.body
+                    body: JSON.stringify(req.body)
                 });
             }
         }catch(error){
