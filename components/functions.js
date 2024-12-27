@@ -36,6 +36,7 @@ async function getTokenInfratec() {
     params.append('password', password);
 
     try {
+        console.log(process.env.INFRATEC_API_TOKEN+'/connect/token')
         const response = await fetch(process.env.INFRATEC_API_TOKEN+'/connect/token', {
             method: 'POST',
             headers: {
@@ -43,7 +44,7 @@ async function getTokenInfratec() {
             },
             body: params
         });
-
+        
         if (!response.ok) {
             throw new Error(` Erro: ${response.status} - ${ response.statusText }`);
          }
@@ -55,5 +56,7 @@ async function getTokenInfratec() {
         console.error('Erro ao fazer a requisição:', error.message);
     }
 }
+
+getTokenInfratec();
 
 module.exports = { getTokenAstraPay, getTokenInfratec };
