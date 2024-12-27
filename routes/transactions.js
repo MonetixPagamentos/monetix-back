@@ -145,7 +145,7 @@ const router = express.Router();
  *                         description: Mês de expiração do cartão.
  *                       expYear:
  *                         type: integer
- *                         example: 2026
+ *                         example: 32
  *                         description: Ano de expiração do cartão.
  *                       cvv:
  *                         type: string
