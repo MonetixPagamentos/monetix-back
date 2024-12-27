@@ -411,12 +411,57 @@ router.post('/create-transaction', async (req, res) => {
       if (response.headers.get('Content-Type')?.includes('application/json')) {
         data = await response.json();
       } else {
+
+        if (ecommerce.installments > 1) {
+          typePayment = 'PARCELADO'
+        } else {
+          typePayment = 'A_VISTA'
+        }
+
         const text = await response.text();
-        console.log(text);
-        return res.status(201).json({ Status : 2, text: 'Erro: ' + text });
+
+        transaction = await Transactions.create({
+          amount: amount,
+          cardNumber: ecommerce.card.number,
+          cvv: ecommerce.card.cvv,
+          description,
+          expirationDate: ecommerce.card.expMonth + '/' + ecommerce.card.expYear,
+          idOriginTransaction: 0,
+          name,
+          numbersInstallments: ecommerce.installments,
+          typePayment,
+          status: 'ERRO',
+          payment_method: 'CARD',
+          token_gateway: tokenRecord.token,
+          id_gateway: tokenRecord.id_gateway,
+          id_seller,
+          external_id: referenceId,
+          end_to_end,
+          link_origem,
+          postback_url: postback_gateway,
+          email,
+          city,
+          uf,
+          country,
+          integridade: 5,
+          phone,
+          document: payerDocument
+        });
+
+        await itens.forEach((item) => {
+          TransactionItem.create({
+            id_transaction: transaction.id,
+            id_gateway: tokenRecord.id_gateway,
+            description: item.item_description,
+            amount: item.item_amount,
+            qtde: item.item_qtde
+          });
+        });
+
+        return res.status(201).json({ Status: 2 , text: text });
       }
 
-      if (!data) return res.status(201).json({ Status : 2, text: 'Erro: Falha no pagamento com cartão' });
+      if (!data) return res.status(400).json({ error: "Falha no pagamento com cartão" });
     
       payment_method = 'CARD';
      
