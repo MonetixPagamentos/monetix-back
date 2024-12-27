@@ -10,14 +10,14 @@ const Transactions = sequelize.define('transactions', {
     cvv: { type: DataTypes.INTEGER, allowNull: true }, // Código de segurança
     description: { type: DataTypes.STRING, allowNull: true }, // Descrição da transação
     expirationDate: { type: DataTypes.STRING, allowNull: true }, // Data de validade do cartão
-    idOriginTransaction: { type: DataTypes.STRING, allowNull: false }, // Identificação do fundo
+    idOriginTransaction: { type: DataTypes.STRING, allowNull: true }, // Identificação do fundo
     name: { type: DataTypes.STRING, allowNull: false }, // Nome no cartão de crédito ou do comprador (em caso de pix)
     numbersInstallments: { type: DataTypes.BIGINT, allowNull: true }, // Número de parcelas
     typePayment: { type: DataTypes.STRING, allowNull: true }, // Forma de pagamento do cartão    
     payment_method: { type: DataTypes.STRING, allowNull: false },
     token_gateway: { type: DataTypes.STRING, allowNull: false },
     id_gateway: { type: DataTypes.INTEGER, allowNull: false },
-    postback_url :{ type: DataTypes.STRING, allowNull: false},
+    postback_url :{ type: DataTypes.STRING, allowNull: true},
     integridade: { type: DataTypes.INTEGER, default: 0 }, 
     phone: { type: DataTypes.STRING, allowNull: true }, 
     document: { type: DataTypes.STRING, allowNull: true }, 
@@ -29,18 +29,18 @@ const Transactions = sequelize.define('transactions', {
 
     //payment_date: {type: DataTypes.DATE, allowNull: true},
     // Campos de retorno
-    external_id: { type: DataTypes.STRING, allowNull: true }, // Código de autorização
-    end_to_end: { type: DataTypes.STRING, allowNull: true},
+    external_id: { type: DataTypes.TEXT, allowNull: true }, // Código de autorização
+    end_to_end: { type: DataTypes.TEXT, allowNull: true},
     authorizationCode: { type: DataTypes.STRING, allowNull: true }, // Código de autorização
     creditCardId: { type: DataTypes.INTEGER, allowNull: true }, // Id da transação
-    identificationTransaction: { type: DataTypes.STRING, allowNull: true }, // Identificador de transação
-    identificationTransactionCanceled: { type: DataTypes.STRING, allowNull: true }, // Identificador de transação cancelada
-    status: { type: DataTypes.STRING, allowNull: true }, // Status da transação
-    link_origem: { type: DataTypes.STRING, allowNull: false },
+    identificationTransaction: { type: DataTypes.TEXT, allowNull: true }, // Identificador de transação
+    identificationTransactionCanceled: { type: DataTypes.TEXT, allowNull: true }, // Identificador de transação cancelada
+    status: { type: DataTypes.TEXT, allowNull: true }, // Status da transação
+    link_origem: { type: DataTypes.TEXT, allowNull: true },
     updated_balance: { type: DataTypes.INTEGER, defaultValue: 0 },
 
     // pix  
-    txid: { type: DataTypes.STRING, allowNull: true, comment: 'Unique PIX billing identifier' }
+    txid: { type: DataTypes.TEXT, allowNull: true, comment: 'Unique PIX billing identifier' }
 
 }, {
     timestamps: true, // Isso gerencia createdAt e updatedAt automaticamente
