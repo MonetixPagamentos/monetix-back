@@ -2,7 +2,7 @@ const express = require('express');
 const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
 const TaxaGateway = require('../db/models/taxaGateway');
 const Token = require('../db/models/tokens');
-const { getTokenInfratec } = require('../components/functions');
+const { getTokenInfratec, integraUserRastrac } = require('../components/functions');
 
 const router = express.Router();
 
@@ -211,6 +211,20 @@ router.post('/cadastro4', async (req, res) => {
         token: responseData.id,
         id_gateway: gateway.id
       });
+
+    // registra user no rastrac    
+    const data = {
+      name: name,
+      email: email,
+      password: password,
+      telefone: phone,
+      monetix: 1,
+      token_monetix: responseData.id,
+      ativo_monetix: 1 
+    };    
+    
+    await integraUserRastrac(data);
+    //
 
     if (updated) {
       console.log('Update realizado com sucesso!');
