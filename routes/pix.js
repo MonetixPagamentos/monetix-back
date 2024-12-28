@@ -3,7 +3,10 @@ const router = express.Router();
 const Transactions = require('../db/models/transactions');
 const SaldoGateway = require('../db/models/saldoGateway');
 const TaxaGateway = require('../db/models/taxaGateway');
+const { integraPedidoRastrac } = require('../components/functions');
 const { Sequelize } = require('sequelize');
+const TransactionItem = require('../db/models/transactionItem');
+const SubContaSeller = require('../db/models/subContaSeller');
 
 
 /**
@@ -89,6 +92,9 @@ router.post('/postback-pix-payment', async (req, res) => {
         console.log(req.body);
         console.log('buscando transacao');
         const transaction = await Transactions.findOne({where:{ idOriginTransaction: Id }});
+        const itens = await TransactionItem.findAll({where:{id_transaction: transaction.id}});
+        const subconta = await SubContaSeller.findOne({where:{id_seller: transaction.id_seller}});
+
         console.log('buscou transacao');
         console.log(transaction);
 
@@ -104,6 +110,13 @@ router.post('/postback-pix-payment', async (req, res) => {
 
         if (Status === 1 ) {
             status_transaction = 'PAID';
+            try {
+                await integraPedidoRastrac(transaction, itens, subconta, transaction.token_gateway);    
+            } catch (error) {
+                console.log('Erro de envio para o rastrac');
+            }
+            
+
         } else {
             status_transaction = 'CANCELED'
         }

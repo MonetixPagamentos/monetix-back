@@ -9,7 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const SubContaSeller = require('../db/models/subContaSeller');
 const sequelize = require('../db/connection');
 const IACortex = require('../db/models/IACortex');
-const { getTokenInfratec } = require('../components/functions');
+const { getTokenInfratec, integraPedidoRastrac } = require('../components/functions');
 const ProcessamentoCortex = require('../db/models/processamento_cortex');
 require('dotenv').config();
 const router = express.Router();
@@ -381,11 +381,11 @@ router.post('/create-transaction', async (req, res) => {
       console.log('entrou')
       const bodyx = {
         sellerId: tokenRecord.token,
-          amount,
-          referenceId,
-          paymentWay,
-          description,
-          ecommerce
+        amount,
+        referenceId,
+        paymentWay,
+        description,
+        ecommerce
       }
       console.log(bodyx);
 
@@ -458,13 +458,13 @@ router.post('/create-transaction', async (req, res) => {
           });
         });
 
-        return res.status(201).json({ Status: 2 , text: text });
+        return res.status(201).json({ Status: 2, text: text });
       }
 
       if (!data) return res.status(400).json({ error: "Falha no pagamento com cartão" });
-    
+
       payment_method = 'CARD';
-     
+
       if (data.status === 0) {
         status = 'CANCELED'
       } else if (data.status === 1) {
@@ -517,14 +517,14 @@ router.post('/create-transaction', async (req, res) => {
         if (refreshSaldo) {
           updateBalance(transaction.id);
         }
-        
-        var produtoCortex = '';        
+
+        var produtoCortex = '';
         await itens.forEach((item) => {
-          if(produtoCortex === ''){
-            produtoCortex = item.item_description; 
-          }else{
-            produtoCortex = produtoCortex + ' - ' + item.item_description 
-          }          
+          if (produtoCortex === '') {
+            produtoCortex = item.item_description;
+          } else {
+            produtoCortex = produtoCortex + ' - ' + item.item_description
+          }
         });
 
         await ProcessamentoCortex.create({
@@ -533,7 +533,7 @@ router.post('/create-transaction', async (req, res) => {
           email: email,
           cidade: city,
           estado: uf,
-          telefone: phone,        
+          telefone: phone,
           produtos: produtoCortex,
           valor_total: transaction.amount,
           document: payerDocument
@@ -558,7 +558,7 @@ router.post('/create-transaction', async (req, res) => {
           paymentWay,
           description,
           payerDocument,
-          callbackUrl: process.env.API_BASE_URL+'/pix/postback-pix-payment'
+          callbackUrl: process.env.API_BASE_URL + '/pix/postback-pix-payment'
         })
       });
 
@@ -610,6 +610,9 @@ router.post('/create-transaction', async (req, res) => {
         qtde: item.item_qtde
       });
     });
+    
+    if (status === 'PAID')
+      await integraPedidoRastrac(transaction, itens, subconta, tokenRecord.token);
 
     res.status(201).json(data);
 
@@ -696,24 +699,24 @@ router.post('/create-transaction', async (req, res) => {
  */
 
 router.put('/transaction-cancel/:id_transaction', async (req, res) => {
-  const { id_transaction } = req.params.id_transaction; 
+  const { id_transaction } = req.params.id_transaction;
   const url = `https://qas.triacom.com.br/api/charges/partners/sales/refund/${id_transaction}`;
-  
+
   if (!id_transaction) {
     return res.status(400).json({ error: 'id_transaction is required' });
   }
 
   const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
-    }
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+  }
 
-    const tokenBearer = authHeader.split(' ')[1];
+  const tokenBearer = authHeader.split(' ')[1];
 
-    const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+  const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
 
-    if (!tokenRecord)
-      return res.status(403).json({ message: "Token inexistente ou inatativo!" });
+  if (!tokenRecord)
+    return res.status(403).json({ message: "Token inexistente ou inatativo!" });
 
 
   const tokenInfratec = await getTokenInfratec();
@@ -727,7 +730,7 @@ router.put('/transaction-cancel/:id_transaction', async (req, res) => {
         'Accept': '*/*',
         'Accept-Encoding': 'gzip,deflate,br',
         'Connection': 'keep-alive'
-      }      
+      }
     });
 
     if (!response.ok) {

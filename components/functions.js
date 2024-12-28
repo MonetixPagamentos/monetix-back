@@ -20,6 +20,56 @@ async function getTokenAstraPay() {
     }
 }
 
+async function integraUserRastrac(data) {
+    try {
+          const response = await fetch(process.env.API_RASTRAC+'/user/register-rastrac', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+      
+          if (response.ok) {
+            const result = await response.json();
+            console.log('Usuário registrado com sucesso:', result);
+          } else {
+            const error = await response.json();
+            console.error('Erro ao registrar o usuário:', error.message || error);
+          }
+        } catch (err) {
+          console.error('Erro na requisição:', err);
+        }
+}
+
+async function integraPedidoRastrac(pedido, item, seller, token) {
+    const data = {
+        pedido,
+        item,
+        seller
+    }
+
+    try {
+        const response = await fetch(`${process.env.API_RASTRAC}/webhook/pedido/${token}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Usuário registrado com sucesso:', result);
+        } else {
+            const error = await response.json();
+            console.error('Erro ao registrar o usuário:', error.message || error);
+        }
+    } catch (err) {
+        console.error('Erro na requisição:', err);
+    }
+};
+
 async function getTokenInfratec() {
     const params = new URLSearchParams();
     const client_id = process.env.INFRATEC_CLIENT_ID;
@@ -27,7 +77,7 @@ async function getTokenInfratec() {
     const client_secret = process.env.INFRATEC_SECRET_ID;
     const scope = process.env.INFRATEC_SCOPE;
     const password = process.env.INFRATEC_PASSWORD;
-    
+
     params.append('client_id', client_id);
     params.append('client_secret', client_secret);
     params.append('scope', scope);
@@ -36,18 +86,18 @@ async function getTokenInfratec() {
     params.append('password', password);
 
     try {
-        console.log(process.env.INFRATEC_API_TOKEN+'/connect/token')
-        const response = await fetch(process.env.INFRATEC_API_TOKEN+'/connect/token', {
+        console.log(process.env.INFRATEC_API_TOKEN + '/connect/token')
+        const response = await fetch(process.env.INFRATEC_API_TOKEN + '/connect/token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: params
         });
-        
+
         if (!response.ok) {
-            throw new Error(` Erro: ${response.status} - ${ response.statusText }`);
-         }
+            throw new Error(` Erro: ${response.status} - ${response.statusText}`);
+        }
 
         const data = await response.json();
         console.log(data);
@@ -59,4 +109,4 @@ async function getTokenInfratec() {
 
 getTokenInfratec();
 
-module.exports = { getTokenAstraPay, getTokenInfratec };
+module.exports = { getTokenAstraPay, getTokenInfratec, integraPedidoRastrac, integraUserRastrac };
