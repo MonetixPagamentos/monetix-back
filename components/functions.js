@@ -60,10 +60,10 @@ async function integraPedidoRastrac(pedido, item, seller, token) {
 
         if (response.ok) {
             const result = await response.json();
-            console.log('Usuário registrado com sucesso:', result);
+            console.log('pedido integrado com sucesso:', result);
         } else {
             const error = await response.json();
-            console.error('Erro ao registrar o usuário:', error.message || error);
+            console.error('Erro ao integrar pedido:', error.message || error);
         }
     } catch (err) {
         console.error('Erro na requisição:', err);

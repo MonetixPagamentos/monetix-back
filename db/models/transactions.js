@@ -35,7 +35,7 @@ const Transactions = sequelize.define('transactions', {
     creditCardId: { type: DataTypes.INTEGER, allowNull: true }, // Id da transação
     identificationTransaction: { type: DataTypes.TEXT, allowNull: true }, // Identificador de transação
     identificationTransactionCanceled: { type: DataTypes.TEXT, allowNull: true }, // Identificador de transação cancelada
-    status: { type: DataTypes.TEXT, allowNull: true }, // Status da transação
+    status: { type: DataTypes.STRING, allowNull: true }, // Status da transação
     link_origem: { type: DataTypes.TEXT, allowNull: true },
     updated_balance: { type: DataTypes.INTEGER, defaultValue: 0 },
 

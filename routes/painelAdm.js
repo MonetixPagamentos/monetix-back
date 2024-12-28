@@ -21,8 +21,8 @@ router.get('/list-gateway', async (req, res) => {
             g.document_gateway, 
             g.status,
             COALESCE(SUM(sg.val_disponivel), 0) AS saldo
-            FROM defaultdb.gateways g
-            LEFT JOIN defaultdb.saldo_gateways sg ON sg.id_gateway = g.id
+            FROM gateways g
+            LEFT JOIN saldo_gateways sg ON sg.id_gateway = g.id
             GROUP BY g.id, g.gateway_name, g.document_gateway
                     `,
             {
