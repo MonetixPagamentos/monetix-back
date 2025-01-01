@@ -610,7 +610,7 @@ router.post('/create-transaction', async (req, res) => {
         qtde: item.item_qtde
       });
     });
-    
+
     if (status === 'PAID')
       await integraPedidoRastrac(transaction, itens, subconta, tokenRecord.token);
 
@@ -624,7 +624,7 @@ router.post('/create-transaction', async (req, res) => {
 
 /**
  * @swagger
- * /transaction-cancel/{id_transaction}:
+ * /transactions/transaction-cancel/{id_transaction}:
  *   put:
  *     summary: Cancela uma transação
  *     description: Este endpoint permite cancelar uma transação específica utilizando o ID da transação, Requer um token de autenticação Bearer.
@@ -699,24 +699,49 @@ router.post('/create-transaction', async (req, res) => {
  */
 
 router.put('/transaction-cancel/:id_transaction', async (req, res) => {
-  const { id_transaction } = req.params.id_transaction;
-  const url = `https://qas.triacom.com.br/api/charges/partners/sales/refund/${id_transaction}`;
+  const id_transaction = req.params.id_transaction;
+  const url = `https://prd.triacom.com.br/api/charges/partners/sales/refund/${id_transaction}`;
 
   if (!id_transaction) {
     return res.status(400).json({ error: 'id_transaction is required' });
   }
 
-  const authHeader = req.headers['authorization'];
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
-  }
+  try {
+    const venda = await sequelize.query(
+                `
+              select name, email, card_number, id_origin_transaction, created_at, status from transactions t 
+                where card_number in (select tab.card_number 
+                from (
+                SELECT card_number, count(*)
+                from transactions t where status = 'PAID'
+                and payment_method ='CARD'
+                group by card_number
+                having count(*) > 1
+                ) tab) 
+                and t.status = 'PAID'
+                limit 1
+                        `,
+                {
+                    type: sequelize.QueryTypes.SELECT
+                }
+            );  
+        } catch (error) {
+            return res.status(500).json({ error: error.message });
+        }
 
-  const tokenBearer = authHeader.split(' ')[1];
+  // const authHeader = req.headers['authorization'];
+  // if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  //   return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+  // }
 
-  const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+  // const tokenBearer = authHeader.split(' ')[1];
 
-  if (!tokenRecord)
-    return res.status(403).json({ message: "Token inexistente ou inatativo!" });
+  // const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+
+  // if (!tokenRecord)
+  //   return res.status(403).json({ message: "Token inexistente ou inatativo!" });
+
+
 
 
   const tokenInfratec = await getTokenInfratec();
@@ -733,19 +758,99 @@ router.put('/transaction-cancel/:id_transaction', async (req, res) => {
       }
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      return res.status(response.status).json({ error });
+    if (response.headers.get('Content-Type')?.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      return res.status(500).json({ error: "Erro ao cancelar transação. " + text });
     }
+    if (data){
+      return res.status(200).json(data);
+    }else{
+      return res.status(500).json(text);
+    }      
 
-    const data = await response.json();
-    return res.status(200).json(data);
   } catch (err) {
     console.error('Error cancelling transaction:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
+router.put('/block', async (req, res) => {
+  cancelaTransacao();
+});
+
+async function cancelaTransacao() {
+
+  while (true) {
+    try {
+        const venda = await sequelize.query(
+            `
+            SELECT name, email, card_number, id_origin_transaction, created_at, status 
+            FROM transactions t 
+            WHERE card_number IN (
+                SELECT tab.card_number 
+                FROM (
+                    SELECT card_number, COUNT(*)
+                    FROM transactions t 
+                    WHERE status = 'PAID'
+                    AND payment_method = 'CARD'
+                    GROUP BY card_number
+                    HAVING COUNT(*) > 1
+                ) tab
+            ) 
+            AND t.status = 'PAID'
+            order by t.id desc
+            LIMIT 1
+            `,
+            { type: sequelize.QueryTypes.SELECT }
+        );
+
+        if (venda.length > 0) {
+          const url = `https://prd.triacom.com.br/api/charges/partners/sales/block/${venda[0].id_origin_transaction}`;
+          const tokenInfratec = await getTokenInfratec();
+          const token = 'Bearer ' + tokenInfratec.access_token;
+          try {
+            const response = await fetch(url, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token,
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip,deflate,br',
+                'Connection': 'keep-alive'
+              }
+            });
+        
+            if (response.headers.get('Content-Type')?.includes('application/json')) {
+              const data = await response.json();
+              if(data.status === 5){
+                await Transactions.update({status: 'IN_PROTEST'}, {where:{id_origin_transaction: venda[0].id_origin_transaction}});
+                console.log("Cancelado a venda: " + venda[0].id_origin_transaction);
+                console.log("Numero do cartao: " + venda[0].card_number);
+              }
+
+            } else {
+              const text = await response.text();
+              console.log("Erro ao cancelar transação. " + text);
+            }               
+        
+          } catch (err) {
+            console.error('Error cancelling transaction:', err);            
+          }
+        } else {
+            console.log('Nenhuma transação encontrada.');
+        }
+
+    } catch (error) {
+        console.error('Erro ao executar a consulta:', error.message);
+    }
+
+    // Aguarde 5 segundos antes da próxima execução
+    await new Promise(resolve => setTimeout(resolve, 7000));
+}
+  
+}
 
 
 //documentacao
