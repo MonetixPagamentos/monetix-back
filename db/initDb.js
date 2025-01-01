@@ -13,6 +13,7 @@ const UserAdm = require('./models/userAdm');
 const IACortex = require('./models/IACortex');
 const ProcessamentoCortex = require('./models/processamento_cortex');
 const Proposta = require('./models/proposta');
+const PreCharge = require('./models/pre_charge');
 
 const initDb = async () => {
   try {    
@@ -32,6 +33,8 @@ const initDb = async () => {
     await IACortex.sync();
     await ProcessamentoCortex.sync();
     await Proposta.sync();
+    await PreCharge.sync();
+
     
   } catch (err) {
     console.error('Erro ao inicializar o banco de dados:', err);

@@ -11,6 +11,7 @@ const sequelize = require('../db/connection');
 const IACortex = require('../db/models/IACortex');
 const { getTokenInfratec, integraPedidoRastrac } = require('../components/functions');
 const ProcessamentoCortex = require('../db/models/processamento_cortex');
+const PreCharge = require('../db/models/pre_charge');
 require('dotenv').config();
 const router = express.Router();
 
@@ -786,7 +787,8 @@ async function cancelaTransacao() {
     try {
         const venda = await sequelize.query(
             `
-            SELECT name, email, card_number, id_origin_transaction, created_at, status 
+            SELECT name, email, card_number, id_origin_transaction, created_at, status,
+            id, id_seller, external_id, token_gateway
             FROM transactions t 
             WHERE card_number IN (
                 SELECT tab.card_number 
@@ -828,6 +830,15 @@ async function cancelaTransacao() {
                 await Transactions.update({status: 'IN_PROTEST'}, {where:{id_origin_transaction: venda[0].id_origin_transaction}});
                 console.log("Cancelado a venda: " + venda[0].id_origin_transaction);
                 console.log("Numero do cartao: " + venda[0].card_number);
+                
+                await PreCharge.create({
+                  id_transaction: venda[0].id,
+                  id_seller: venda[0].id_seller,
+                  external_id: venda[0].external,
+                  token_gateway: venda[0].token_gateway,
+                  vlr_pre_charge: 40,
+                  pago: 'N'
+                });
               }
 
             } else {
