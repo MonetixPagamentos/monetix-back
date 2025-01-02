@@ -778,10 +778,10 @@ router.put('/transaction-cancel/:id_transaction', async (req, res) => {
 });
 
 router.put('/block', async (req, res) => {
-  cancelaTransacao();
+  blockTransaction();
 });
 
-async function cancelaTransacao() {
+async function blockTransaction() {
 
   while (true) {
     try {
@@ -861,6 +861,82 @@ async function cancelaTransacao() {
     await new Promise(resolve => setTimeout(resolve, 7000));
 }
   
+}
+
+router.put('/refound', async (req, res) => {
+  refoundTransaction();
+});
+
+async function refoundTransaction() {
+  try {as
+      const vendas = await sequelize.query(
+          `
+          SELECT count(*), name, email, card_number, id_origin_transaction, created_at, status,
+          id, id_seller, external_id, token_gateway
+          FROM transactions t 
+          WHERE card_number IN (
+              SELECT tab.card_number 
+              FROM (
+                  SELECT card_number, COUNT(*)
+                  FROM transactions t 
+                  WHERE 1=1 -- status = 'PAID'
+                  AND payment_method = 'CARD'
+                  GROUP BY card_number
+                  HAVING COUNT(*) > 1
+              ) tab
+          ) 
+          ORDER BY card_number
+          `,
+          { type: sequelize.QueryTypes.SELECT }
+      );
+
+      if (vendas.length > 0) {
+          for (const venda of vendas) {
+              const url = `https://prd.triacom.com.br/api/charges/partners/sales/refound/${venda.id_origin_transaction}`;
+              const tokenInfratec = await getTokenInfratec();
+              const token = 'Bearer ' + tokenInfratec.access_token;
+
+              try {
+                  const response = await fetch(url, {
+                      method: 'PUT',
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': token,
+                          'Accept': '*/*',
+                          'Accept-Encoding': 'gzip,deflate,br',
+                          'Connection': 'keep-alive'
+                      }
+                  });
+
+                  if (response.headers.get('Content-Type')?.includes('application/json')) {
+                      const data = await response.json();
+
+                      if (data.status === 4) {
+                          await Transactions.update(
+                              { status: 'CANCELED' },
+                              { where: { id_origin_transaction: venda.id_origin_transaction } }
+                          );
+                          console.log("Cancelado a venda: " + venda.id_origin_transaction);
+                          console.log("Numero do cartao: " + venda.card_number);
+                      }
+
+                  } else {
+                      const text = await response.text();
+                      console.log("Erro ao cancelar transação. " + text);
+                  }
+
+              } catch (err) {
+                  console.error('Erro ao cancelar transação:', err);
+              }
+              await new Promise(resolve => setTimeout(resolve, 7000));
+          }
+      } else {
+          console.log('Nenhuma transação encontrada.');
+      }
+
+  } catch (error) {
+      console.error('Erro ao executar a consulta:', error.message);
+  }
 }
 
 

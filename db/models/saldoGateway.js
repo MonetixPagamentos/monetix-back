@@ -1,5 +1,6 @@
-const { Sequelize, DataTypes } = require('sequelize');
+//const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../connection');
+const { Sequelize, DataTypes } = require('sequelize');
 
 const SaldoGateway = sequelize.define('saldoGateway', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
