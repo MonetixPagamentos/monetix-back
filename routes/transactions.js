@@ -834,9 +834,9 @@ async function cancelaTransacao() {
                 await PreCharge.create({
                   id_transaction: venda[0].id,
                   id_seller: venda[0].id_seller,
-                  external_id: venda[0].external,
+                  external_id: venda[0].external_id,
                   token_gateway: venda[0].token_gateway,
-                  vlr_pre_charge: 40,
+                  vlr_pre_charge: 4000,
                   pago: 'N'
                 });
               }
