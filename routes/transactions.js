@@ -9,7 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const SubContaSeller = require('../db/models/subContaSeller');
 const sequelize = require('../db/connection');
 const IACortex = require('../db/models/IACortex');
-const { getTokenInfratec, integraPedidoRastrac } = require('../components/functions');
+const { getTokenInfratec, integraPedidoRastrac, getTokenSSGBank, atualizaTranzacao } = require('../components/functions');
 const ProcessamentoCortex = require('../db/models/processamento_cortex');
 const PreCharge = require('../db/models/pre_charge');
 require('dotenv').config();
@@ -376,8 +376,8 @@ router.post('/create-transaction', async (req, res) => {
     var data;
     var transaction;
 
-    const tokenInfratec = await getTokenInfratec();
-    const token = 'Bearer ' + tokenInfratec.access_token;
+    const tokenSSGB = await getTokenSSGBank();
+    const token = 'Bearer ' + tokenSSGB;
     if (paymentWay === 5) {
       console.log('entrou')
       const bodyx = {
@@ -543,40 +543,25 @@ router.post('/create-transaction', async (req, res) => {
 
     } else if (paymentWay === 3)/*PIX*/ {
 
-      const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/sales`, {
+      const payload = {
+        value: Number((Number(amount) / 100)).toFixed(2),
+        device_code: process.env.DEVICE_CODE_SSGB
+      }
+      const response = await fetch(`${process.env.URL_API_TOKEN_SSGB}api/qrcode/new`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token,
-          'Accept': '*/*',
-          'Accept-Encoding': 'gzip,deflate,br',
-          'Connection': 'keep-alive'
+          'Authorization': token         
         },
-        body: JSON.stringify({
-          sellerId: tokenBearer,
-          amount,
-          referenceId,
-          paymentWay,
-          description,
-          payerDocument,
-          callbackUrl: process.env.API_BASE_URL + '/pix/postback-pix-payment'
-        })
+        body: JSON.stringify(payload)
       });
-
-      if (response.headers.get('Content-Type')?.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        return res.status(500).json({ error: "Erro ao criar transação. " + text });
-      }
-
-      if (data.paymentWay === 5) {
-        payment_method = 'CARD'
-      } else if (data.paymentWay === 3) {
-        payment_method = 'PIX'
-      } else if (data.paymentWay === 2) {
-        payment_method = 'BOLETO'
-      }
+      data = await response.json();
+      // if (response.headers.get('Content-Type')?.includes('application/json')) {
+      //   data = await response.json();
+      // } else {
+      //   const text = await response.text();
+      //   return res.status(500).json(text);
+      // }
 
       if (!data) return res.status(400).json({ error: "Falha no pagamento PIX" });
 
@@ -584,7 +569,7 @@ router.post('/create-transaction', async (req, res) => {
         amount,
         description,
         idOriginTransaction: data.id,
-        payment_method,
+        payment_method: 'PIX',
         token_gateway: tokenRecord.token,
         id_gateway: tokenRecord.id_gateway,
         id_seller,
@@ -612,10 +597,55 @@ router.post('/create-transaction', async (req, res) => {
       });
     });
 
-    if (status === 'PAID')
-      await integraPedidoRastrac(transaction, itens, subconta, tokenRecord.token);
-
     res.status(201).json(data);
+
+    console.log('PASSOU');
+
+    
+    let verificador = true;
+    const tempoLimite = 15 * 60 * 1000; // 15 minutos em milissegundos
+    const intervalo = 3000; // 3 segundos
+
+    const iniciarVerificacao = async () => {
+      const startTime = Date.now();
+
+      console.log('VERIFICANDO STATUS');
+
+      const intervalId = setInterval(async () => {
+        if (!verificador || Date.now() - startTime >= tempoLimite) {
+          clearInterval(intervalId);
+          return;
+        }
+
+        try {
+          const response = await fetch(`${process.env.URL_API_TOKEN_SSGB}api/qrcode/${data.id}/status`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': token
+            },
+            body: JSON.stringify({
+              device_code: process.env.DEVICE_CODE_SSGB
+            })
+          });
+
+          const retorno = await response.json();
+          if (retorno.status === 'PAID') {
+            verificador = false;
+            clearInterval(intervalId);
+            const reqBody = {
+              idTransaction: data.id,
+              status: 'PAID',
+            };
+            atualizaTranzacao(data.id, retorno.status, reqBody);
+          }
+        } catch (error) {
+          console.error("Erro ao verificar status:", error);
+        }
+      }, intervalo);
+    };
+
+    iniciarVerificacao();
 
   } catch (error) {
     console.error("Erro ao criar transação:", error);
@@ -709,7 +739,7 @@ router.put('/transaction-cancel/:id_transaction', async (req, res) => {
 
   try {
     const venda = await sequelize.query(
-                `
+      `
               select name, email, card_number, id_origin_transaction, created_at, status from transactions t 
                 where card_number in (select tab.card_number 
                 from (
@@ -722,13 +752,13 @@ router.put('/transaction-cancel/:id_transaction', async (req, res) => {
                 and t.status = 'PAID'
                 limit 1
                         `,
-                {
-                    type: sequelize.QueryTypes.SELECT
-                }
-            );  
-        } catch (error) {
-            return res.status(500).json({ error: error.message });
-        }
+      {
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 
   // const authHeader = req.headers['authorization'];
   // if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -742,10 +772,7 @@ router.put('/transaction-cancel/:id_transaction', async (req, res) => {
   // if (!tokenRecord)
   //   return res.status(403).json({ message: "Token inexistente ou inatativo!" });
 
-
-
-
-  const tokenInfratec = await getTokenInfratec();
+  const tokenInfratec = await getTokenSSGBank();
   const token = 'Bearer ' + tokenInfratec.access_token;
   try {
     const response = await fetch(url, {
@@ -765,11 +792,11 @@ router.put('/transaction-cancel/:id_transaction', async (req, res) => {
       const text = await response.text();
       return res.status(500).json({ error: "Erro ao cancelar transação. " + text });
     }
-    if (data){
+    if (data) {
       return res.status(200).json(data);
-    }else{
+    } else {
       return res.status(500).json(text);
-    }      
+    }
 
   } catch (err) {
     console.error('Error cancelling transaction:', err);
@@ -785,8 +812,8 @@ async function blockTransaction() {
 
   while (true) {
     try {
-        const venda = await sequelize.query(
-            `
+      const venda = await sequelize.query(
+        `
             SELECT name, email, card_number, id_origin_transaction, created_at, status,
             id, id_seller, external_id, token_gateway
             FROM transactions t 
@@ -805,62 +832,62 @@ async function blockTransaction() {
             order by t.id desc
             LIMIT 1
             `,
-            { type: sequelize.QueryTypes.SELECT }
-        );
+        { type: sequelize.QueryTypes.SELECT }
+      );
 
-        if (venda.length > 0) {
-          const url = `https://prd.triacom.com.br/api/charges/partners/sales/block/${venda[0].id_origin_transaction}`;
-          const tokenInfratec = await getTokenInfratec();
-          const token = 'Bearer ' + tokenInfratec.access_token;
-          try {
-            const response = await fetch(url, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': token,
-                'Accept': '*/*',
-                'Accept-Encoding': 'gzip,deflate,br',
-                'Connection': 'keep-alive'
-              }
-            });
-        
-            if (response.headers.get('Content-Type')?.includes('application/json')) {
-              const data = await response.json();
-              if(data.status === 5){
-                await Transactions.update({status: 'IN_PROTEST'}, {where:{id_origin_transaction: venda[0].id_origin_transaction}});
-                console.log("Cancelado a venda: " + venda[0].id_origin_transaction);
-                console.log("Numero do cartao: " + venda[0].card_number);
-                
-                await PreCharge.create({
-                  id_transaction: venda[0].id,
-                  id_seller: venda[0].id_seller,
-                  external_id: venda[0].external_id,
-                  token_gateway: venda[0].token_gateway,
-                  vlr_pre_charge: 4000,
-                  pago: 'N'
-                });
-              }
+      if (venda.length > 0) {
+        const url = `https://prd.triacom.com.br/api/charges/partners/sales/block/${venda[0].id_origin_transaction}`;
+        const tokenInfratec = await getTokenInfratec();
+        const token = 'Bearer ' + tokenInfratec.access_token;
+        try {
+          const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': token,
+              'Accept': '*/*',
+              'Accept-Encoding': 'gzip,deflate,br',
+              'Connection': 'keep-alive'
+            }
+          });
 
-            } else {
-              const text = await response.text();
-              console.log("Erro ao cancelar transação. " + text);
-            }               
-        
-          } catch (err) {
-            console.error('Error cancelling transaction:', err);            
+          if (response.headers.get('Content-Type')?.includes('application/json')) {
+            const data = await response.json();
+            if (data.status === 5) {
+              await Transactions.update({ status: 'IN_PROTEST' }, { where: { id_origin_transaction: venda[0].id_origin_transaction } });
+              console.log("Cancelado a venda: " + venda[0].id_origin_transaction);
+              console.log("Numero do cartao: " + venda[0].card_number);
+
+              await PreCharge.create({
+                id_transaction: venda[0].id,
+                id_seller: venda[0].id_seller,
+                external_id: venda[0].external_id,
+                token_gateway: venda[0].token_gateway,
+                vlr_pre_charge: 4000,
+                pago: 'N'
+              });
+            }
+
+          } else {
+            const text = await response.text();
+            console.log("Erro ao cancelar transação. " + text);
           }
-        } else {
-            console.log('Nenhuma transação encontrada.');
+
+        } catch (err) {
+          console.error('Error cancelling transaction:', err);
         }
+      } else {
+        console.log('Nenhuma transação encontrada.');
+      }
 
     } catch (error) {
-        console.error('Erro ao executar a consulta:', error.message);
+      console.error('Erro ao executar a consulta:', error.message);
     }
 
     // Aguarde 5 segundos antes da próxima execução
     await new Promise(resolve => setTimeout(resolve, 7000));
-}
-  
+  }
+
 }
 
 router.put('/refound', async (req, res) => {
@@ -868,9 +895,10 @@ router.put('/refound', async (req, res) => {
 });
 
 async function refoundTransaction() {
-  try {as
-      const vendas = await sequelize.query(
-          `
+  try {
+    as
+    const vendas = await sequelize.query(
+      `
           SELECT count(*), name, email, card_number, id_origin_transaction, created_at, status,
           id, id_seller, external_id, token_gateway
           FROM transactions t 
@@ -887,55 +915,55 @@ async function refoundTransaction() {
           ) 
           ORDER BY card_number
           `,
-          { type: sequelize.QueryTypes.SELECT }
-      );
+      { type: sequelize.QueryTypes.SELECT }
+    );
 
-      if (vendas.length > 0) {
-          for (const venda of vendas) {
-              const url = `https://prd.triacom.com.br/api/charges/partners/sales/refound/${venda.id_origin_transaction}`;
-              const tokenInfratec = await getTokenInfratec();
-              const token = 'Bearer ' + tokenInfratec.access_token;
+    if (vendas.length > 0) {
+      for (const venda of vendas) {
+        const url = `https://prd.triacom.com.br/api/charges/partners/sales/refound/${venda.id_origin_transaction}`;
+        const tokenInfratec = await getTokenInfratec();
+        const token = 'Bearer ' + tokenInfratec.access_token;
 
-              try {
-                  const response = await fetch(url, {
-                      method: 'PUT',
-                      headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': token,
-                          'Accept': '*/*',
-                          'Accept-Encoding': 'gzip,deflate,br',
-                          'Connection': 'keep-alive'
-                      }
-                  });
+        try {
+          const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': token,
+              'Accept': '*/*',
+              'Accept-Encoding': 'gzip,deflate,br',
+              'Connection': 'keep-alive'
+            }
+          });
 
-                  if (response.headers.get('Content-Type')?.includes('application/json')) {
-                      const data = await response.json();
+          if (response.headers.get('Content-Type')?.includes('application/json')) {
+            const data = await response.json();
 
-                      if (data.status === 4) {
-                          await Transactions.update(
-                              { status: 'CANCELED' },
-                              { where: { id_origin_transaction: venda.id_origin_transaction } }
-                          );
-                          console.log("Cancelado a venda: " + venda.id_origin_transaction);
-                          console.log("Numero do cartao: " + venda.card_number);
-                      }
+            if (data.status === 4) {
+              await Transactions.update(
+                { status: 'CANCELED' },
+                { where: { id_origin_transaction: venda.id_origin_transaction } }
+              );
+              console.log("Cancelado a venda: " + venda.id_origin_transaction);
+              console.log("Numero do cartao: " + venda.card_number);
+            }
 
-                  } else {
-                      const text = await response.text();
-                      console.log("Erro ao cancelar transação. " + text);
-                  }
-
-              } catch (err) {
-                  console.error('Erro ao cancelar transação:', err);
-              }
-              await new Promise(resolve => setTimeout(resolve, 7000));
+          } else {
+            const text = await response.text();
+            console.log("Erro ao cancelar transação. " + text);
           }
-      } else {
-          console.log('Nenhuma transação encontrada.');
+
+        } catch (err) {
+          console.error('Erro ao cancelar transação:', err);
+        }
+        await new Promise(resolve => setTimeout(resolve, 7000));
       }
+    } else {
+      console.log('Nenhuma transação encontrada.');
+    }
 
   } catch (error) {
-      console.error('Erro ao executar a consulta:', error.message);
+    console.error('Erro ao executar a consulta:', error.message);
   }
 }
 
