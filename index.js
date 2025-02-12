@@ -49,6 +49,10 @@ initDb().then(() => {
   app.use('/email', email);
   app.use('/pix', pix);
   app.use('/docs', docs);
+  
+  app.post('/teste-postback',(req,res) => {
+    console.log(req.body)
+  });
 
   app.get('/', (req, res) => {
     res.send('API MONETIX :D');

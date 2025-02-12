@@ -4,6 +4,7 @@ const TaxaGateway = require('../db/models/taxaGateway');
 const Transactions = require('../db/models/transactions');
 const TransactionItem = require('../db/models/transactionItem');
 const SubContaSeller = require('../db/models/subContaSeller');
+const { Sequelize } = require('sequelize');
 
 require('dotenv').config();
 
@@ -15,6 +16,28 @@ async function getTokenSSGBank() {
             client_secret: process.env.CLIENT_SECRET_SSGB
         };
         const response = await fetch(process.env.URL_API_TOKEN_SSGB + 'oauth/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        return data.access_token;
+    } catch (error) {
+        console.error('Erro ao obter token:', error);
+    }
+}
+
+async function getTokenSSGBankCard() {
+    try {
+        const payload = {
+            grant_type: 'client_credentials',
+            client_id: process.env.CLIENT_ID_CARD_SSGB,
+            client_secret: process.env.CLIENT_SECRET_CARD_SSGB
+        };
+        const response = await fetch(process.env.URL_API_TOKEN_CARD_SSGB + 'oauth/token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -115,8 +138,18 @@ async function atualizaTranzacao(id, status_transaction, reqBody) {
         }
     } catch (error) {
         console.error('POSTBACK INVALIDO:', error.message || error);
-    } finally {
-        return res.status(200).json({ message: 'SUCCESS' });
+    }
+}
+
+async function updateBalance(id_transaction) {
+    try {
+        await Transactions.update(
+            { updated_balance: 1 },
+            { where: { id: id_transaction } }
+        );
+        console.log("Campo updated_balance atualizado, id_transaction: " + id_transaction);
+    } catch (error) {
+        console.error("Erro ao atualizar o campo updated_balance:", error);
     }
 }
 
@@ -149,4 +182,4 @@ async function refreshSaldoGateway(id_gateway, id_seller, valor) {
     }
 }
 
-module.exports = { atualizaTranzacao, getTokenSSGBank, integraPedidoRastrac, integraUserRastrac };
+module.exports = { atualizaTranzacao, getTokenSSGBank, integraPedidoRastrac, integraUserRastrac, getTokenSSGBankCard };

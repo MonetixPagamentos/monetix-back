@@ -9,7 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const SubContaSeller = require('../db/models/subContaSeller');
 const sequelize = require('../db/connection');
 const IACortex = require('../db/models/IACortex');
-const { getTokenInfratec, integraPedidoRastrac, getTokenSSGBank, atualizaTranzacao } = require('../components/functions');
+const { getTokenInfratec, integraPedidoRastrac, getTokenSSGBank, atualizaTranzacao, getTokenSSGBankCard } = require('../components/functions');
 const ProcessamentoCortex = require('../db/models/processamento_cortex');
 const PreCharge = require('../db/models/pre_charge');
 require('dotenv').config();
@@ -36,6 +36,7 @@ const router = express.Router();
  *               - amount               
  *               - description
  *               - name
+ *               - payerDocument
  *               - typePayment
  *               - payment_method
  *               - id_gateway
@@ -46,9 +47,7 @@ const router = express.Router();
  *               - uf
  *               - country
  *               - email
- *               - document
  *               - phone
- *               - payerDocument
  *             properties:               
  *               amount:
  *                 type: number
@@ -62,7 +61,7 @@ const router = express.Router();
  *                 type: string
  *                 example: "João da Silva"
  *                 description: Nome no cartão de crédito ou do comprador (em caso de pix).
- *               document:
+ *               payerDocument:
  *                 type: string
  *                 example: "99999999999"
  *                 description: CPF ou CNPJ do comprador.
@@ -105,11 +104,7 @@ const router = express.Router();
  *               phone:
  *                 type: string
  *                 example: "+5511991144566"
- *                 description: Telefone do comprador. 
- *               payerDocument:
- *                 type: string 
- *                 example: "123456456464"
- *                 description: CPF/CNPJ do comprador. 
+ *                 description: Telefone do comprador.  
  *               paymentWay:
  *                 type: integer 
  *                 example: 3
@@ -204,7 +199,7 @@ const router = express.Router();
  *                   nullable: true
  *                   example: null
  *                   description: Nome do pagador.
- *                 payerDocument:
+ *                 document:
  *                   type: string
  *                   nullable: true
  *                   example: null
@@ -376,42 +371,45 @@ router.post('/create-transaction', async (req, res) => {
     var data;
     var transaction;
 
-    const tokenSSGB = await getTokenSSGBank();
-    const token = 'Bearer ' + tokenSSGB;
-    if (paymentWay === 5) {
-      console.log('entrou')
-      const bodyx = {
-        sellerId: tokenRecord.token,
-        amount,
-        referenceId,
-        paymentWay,
-        description,
-        ecommerce
-      }
-      console.log(bodyx);
+    let tokenSSGB;
+    let token;
+    if (paymentWay === 5) {  //CARD
 
-      const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/sales`, {
+      tokenSSGB = await getTokenSSGBankCard();
+      token = 'Bearer ' + tokenSSGB;
+      console.log('entrou')
+
+      const expirationDate = ecommerce.card.expYear + '-' + ecommerce.card.expMonth;
+
+      const payload = {
+        type: "CREDIT",
+        amount: Number((Number(amount) / 100)).toFixed(2),
+        card_number: ecommerce.card.number,
+        card_security_code: ecommerce.card.cvv,
+        card_expiration_date: expirationDate,
+        card_holder_name: name,
+        installments: ecommerce.installments
+      }
+
+      const response = await fetch(`${process.env.URL_API_TOKEN_CARD_SSGB}api/sale`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token,
-          'Accept': '*/*',
-          'Accept-Encoding': 'gzip,deflate,br',
-          'Connection': 'keep-alive'
+          'Authorization': token
         },
-        body: JSON.stringify({
-          sellerId: tokenRecord.token,
-          amount,
-          referenceId,
-          paymentWay,
-          description,
-          ecommerce
-        })
+        body: JSON.stringify(payload)
       });
 
-      if (response.headers.get('Content-Type')?.includes('application/json')) {
-        data = await response.json();
-      } else {
+      data = await response.json();
+      if (response.ok) {
+
+        payment_method = 'CARD';
+
+        if (data.status === 'ACCEPTED') {
+          status = 'PAID'
+        } else {
+          status = 'ERRO'
+        }
 
         if (ecommerce.installments > 1) {
           typePayment = 'PARCELADO'
@@ -419,7 +417,80 @@ router.post('/create-transaction', async (req, res) => {
           typePayment = 'A_VISTA'
         }
 
-        const text = await response.text();
+        var numbersInstallments;
+        if (ecommerce.installments) {
+          numbersInstallments = ecommerce.installments;
+        }
+
+        transaction = await Transactions.create({
+          amount: amount,
+          cardNumber: ecommerce.card.number,
+          cvv: ecommerce.card.cvv,
+          description,
+          expirationDate: ecommerce.card.expMonth + '/' + ecommerce.card.expYear,
+          idOriginTransaction: data.id,
+          name,
+          numbersInstallments,
+          typePayment,
+          status,
+          payment_method,
+          token_gateway: tokenRecord.token,
+          id_gateway: tokenRecord.id_gateway,
+          id_seller,
+          external_id: referenceId,
+          end_to_end,
+          link_origem,
+          postback_url: postback_gateway,
+          email,
+          city,
+          uf,
+          country,
+          integridade: subconta.integridade,
+          phone,
+          document: payerDocument
+        });
+
+        if (transaction && status === 'PAID') {
+          const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, amount, numbersInstallments);
+          if (refreshSaldo) {
+            updateBalance(transaction.id);
+          }
+
+          var produtoCortex = '';
+          await itens.forEach((item) => {
+            if (produtoCortex === '') {
+              produtoCortex = item.item_description;
+            } else {
+              produtoCortex = produtoCortex + ' - ' + item.item_description
+            }
+          });
+
+          await ProcessamentoCortex.create({
+            id_transaction: transaction.id,
+            nome: name,
+            email: email,
+            cidade: city,
+            estado: uf,
+            telefone: phone,
+            produtos: produtoCortex,
+            valor_total: transaction.amount,
+            document: payerDocument
+          });
+        }
+
+      } else {
+
+        if (response.status === 401) {
+          return res.status(401).json({ message: data.message })
+        }
+
+        if (ecommerce.installments > 1) {
+          typePayment = 'PARCELADO'
+        } else {
+          typePayment = 'A_VISTA'
+        }
+
+        const data = await response.json();
 
         transaction = await Transactions.create({
           amount: amount,
@@ -459,90 +530,13 @@ router.post('/create-transaction', async (req, res) => {
           });
         });
 
-        return res.status(201).json({ Status: 2, text: text });
-      }
-
-      if (!data) return res.status(400).json({ error: "Falha no pagamento com cartão" });
-
-      payment_method = 'CARD';
-
-      if (data.status === 0) {
-        status = 'CANCELED'
-      } else if (data.status === 1) {
-        status = 'PAID'
-      } else {
-        status = 'ERRO'
-      }
-
-      if (data.ecommerce.installments > 1) {
-        typePayment = 'PARCELADO'
-      } else {
-        typePayment = 'A_VISTA'
-      }
-
-      var numbersInstallments;
-      if (data.ecommerce.installments) {
-        numbersInstallments = data.ecommerce.installments;
-      }
-
-      transaction = await Transactions.create({
-        amount: data.amount,
-        cardNumber: ecommerce.card.number,
-        cvv: ecommerce.card.cvv,
-        description,
-        expirationDate: ecommerce.card.expMonth + '/' + ecommerce.card.expYear,
-        idOriginTransaction: data.id,
-        name,
-        numbersInstallments,
-        typePayment,
-        status,
-        payment_method,
-        token_gateway: tokenRecord.token,
-        id_gateway: tokenRecord.id_gateway,
-        id_seller,
-        external_id: referenceId,
-        end_to_end,
-        link_origem,
-        postback_url: postback_gateway,
-        email,
-        city,
-        uf,
-        country,
-        integridade: subconta.integridade,
-        phone,
-        document: payerDocument
-      });
-
-      if (transaction && status === 'PAID') {
-        const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, amount, numbersInstallments);
-        if (refreshSaldo) {
-          updateBalance(transaction.id);
-        }
-
-        var produtoCortex = '';
-        await itens.forEach((item) => {
-          if (produtoCortex === '') {
-            produtoCortex = item.item_description;
-          } else {
-            produtoCortex = produtoCortex + ' - ' + item.item_description
-          }
-        });
-
-        await ProcessamentoCortex.create({
-          id_transaction: transaction.id,
-          nome: name,
-          email: email,
-          cidade: city,
-          estado: uf,
-          telefone: phone,
-          produtos: produtoCortex,
-          valor_total: transaction.amount,
-          document: payerDocument
-        });
+        return res.status(403).json({ Status: 2, message: data.message, errors: data.errors });
       }
 
     } else if (paymentWay === 3)/*PIX*/ {
 
+      tokenSSGB = await getTokenSSGBank();
+      token = 'Bearer ' + tokenSSGB;
       const payload = {
         value: Number((Number(amount) / 100)).toFixed(2),
         device_code: process.env.DEVICE_CODE_SSGB
@@ -551,17 +545,11 @@ router.post('/create-transaction', async (req, res) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token         
+          'Authorization': token
         },
         body: JSON.stringify(payload)
       });
       data = await response.json();
-      // if (response.headers.get('Content-Type')?.includes('application/json')) {
-      //   data = await response.json();
-      // } else {
-      //   const text = await response.text();
-      //   return res.status(500).json(text);
-      // }
 
       if (!data) return res.status(400).json({ error: "Falha no pagamento PIX" });
 
@@ -597,55 +585,105 @@ router.post('/create-transaction', async (req, res) => {
       });
     });
 
-    res.status(201).json(data);
+    if (paymentWay === 5) {
+      let statusRetorno = data.status === 'ACCEPTED' ? 1 : 0;
+
+      const retorno = {
+        id: transaction.id_origin_transaction,
+        register: transaction.created_at,
+        id_seller: transaction.id_seller,
+        buyerId: null,
+        payerName: null,
+        payerDocument: transaction.document,
+        paymentWay: paymentWay,
+        description: description,
+        amount: amount,
+        referenceId: referenceId,
+        status: statusRetorno,
+        error: null,
+        frequency: null,
+        callbackUrl: null,
+        barcode: null,
+        pixCharge: null,
+        ted: null,
+        link: null,
+        ecommerce: {
+          installments: ecommerce.installments,
+          card: null,
+          error: null,
+          success: true
+        },
+        splits: null,
+        dueDate: null,
+        discount: null,
+        fine: null,
+        interest: null
+      }
+
+      res.status(201).json(retorno);
+    }else{      
+      res.status(201).json(data);
+    }
 
     console.log('PASSOU');
 
-    
-    let verificador = true;
-    const tempoLimite = 15 * 60 * 1000; // 15 minutos em milissegundos
-    const intervalo = 3000; // 3 segundos
+    if (paymentWay === 3) {
+      let verificador = true;
+      const tempoLimite = 15 * 60 * 1000; // 15 minutos em milissegundos
+      const intervalo = 3000; // 3 segundos
 
-    const iniciarVerificacao = async () => {
-      const startTime = Date.now();
+      const iniciarVerificacao = async () => {
+        const startTime = Date.now();
 
-      console.log('VERIFICANDO STATUS');
+        console.log('VERIFICANDO STATUS');
 
-      const intervalId = setInterval(async () => {
-        if (!verificador || Date.now() - startTime >= tempoLimite) {
-          clearInterval(intervalId);
-          return;
-        }
-
-        try {
-          const response = await fetch(`${process.env.URL_API_TOKEN_SSGB}api/qrcode/${data.id}/status`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': token
-            },
-            body: JSON.stringify({
-              device_code: process.env.DEVICE_CODE_SSGB
-            })
-          });
-
-          const retorno = await response.json();
-          if (retorno.status === 'PAID') {
-            verificador = false;
+        const intervalId = setInterval(async () => {
+          if (!verificador || Date.now() - startTime >= tempoLimite) {
             clearInterval(intervalId);
-            const reqBody = {
-              idTransaction: data.id,
-              status: 'PAID',
-            };
-            atualizaTranzacao(data.id, retorno.status, reqBody);
+            return;
           }
-        } catch (error) {
-          console.error("Erro ao verificar status:", error);
-        }
-      }, intervalo);
-    };
 
-    iniciarVerificacao();
+          try {
+            const response = await fetch(`${process.env.URL_API_TOKEN_SSGB}api/qrcode/${data.id}/status?device_code=${process.env.DEVICE_CODE_SSGB}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token
+              }
+            });
+
+            const retorno = await response.json();
+
+            console.log('STATUS PIX - ' + retorno.status);
+            if (retorno.status === 'PAID') {
+              verificador = false;
+              clearInterval(intervalId);
+
+              const reqBody = {
+                success: true,
+                message: "Transação paga",
+                data: {
+                  id: data.id,
+                  sellerId: transaction.id_seller,
+                  payerDocument: payerDocument,
+                  paymentWay: paymentWay,
+                  description: description,
+                  amount: amount,
+                  referenceId: referenceId,
+                  status: 0
+                }
+              }
+              
+              atualizaTranzacao(data.id, retorno.status, reqBody);
+            }
+          } catch (error) {
+            console.error("Erro ao verificar status:", error);
+          }
+        }, intervalo);
+      };
+
+      iniciarVerificacao();
+    }
 
   } catch (error) {
     console.error("Erro ao criar transação:", error);
