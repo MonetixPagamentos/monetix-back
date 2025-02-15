@@ -452,9 +452,9 @@ router.post('/create-transaction', async (req, res) => {
 
         if (transaction && status === 'PAID') {
           const refreshSaldo = await refreshSaldoGateway(tokenRecord.id_gateway, id_seller, amount, numbersInstallments);
-          if (refreshSaldo) {
-            updateBalance(transaction.id);
-          }
+         // if (refreshSaldo) {
+         //   updateBalance(transaction.id);
+          //}
 
           var produtoCortex = '';
           await itens.forEach((item) => {

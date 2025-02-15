@@ -18,7 +18,9 @@ const docs = require('./routes/docs');
 const setupSwagger = require('./swagger');
 
 const cron = require('node-cron');
+
 const cors = require('cors');
+const { atualizaSaldo24 } = require('./components/functions');
 
 const app = express();
 
@@ -145,13 +147,14 @@ initDb().then(() => {
 
   });
 
-  // const func = () => {
-  //   // criar rotina
-  // };
+   const func = () => {
+     atualizaSaldo24()
+   };
 
-  // cron.schedule('*/50 * * * * *', func, {
-  //   timezone: 'America/Sao_Paulo' // Configura o timezone para o horário do Brasil
-  // });
+   cron.schedule('0 * * * *', func, {
+    timezone: 'America/Sao_Paulo'
+  });
+  
 
   app.listen(port, () => {
     console.log(`Servidor rodando em http://localhost:${port}`);

@@ -5,6 +5,8 @@ const Transactions = require('../db/models/transactions');
 const TransactionItem = require('../db/models/transactionItem');
 const SubContaSeller = require('../db/models/subContaSeller');
 const { Sequelize } = require('sequelize');
+const moment = require("moment");
+const { Op } = require("sequelize");
 
 require('dotenv').config();
 
@@ -153,6 +155,39 @@ async function updateBalance(id_transaction) {
     }
 }
 
+
+async function refreshSaldoGateway24(id_gateway, id_seller, valor, numbersInstallments) {
+    try {
+  
+      const taxaGateway = await TaxaGateway.findOne({ where: { id_gateway: id_gateway } });
+  
+      const taxa_reserva = taxaGateway.taxa_reserva;
+      const campo = `taxa_cartao_${numbersInstallments}`;
+      const taxa = taxaGateway[campo];
+  
+      var descTaxCard = (valor * (taxa / 100));
+      var valReserve = (valor * (taxa_reserva / 100));
+  
+      const valDisponivel = valor - descTaxCard - valReserve - taxaGateway.taxa_transacao;
+  
+  
+      await SaldoGateway.update(
+        {
+          val_disponivel: Sequelize.literal(`val_disponivel + ${valDisponivel}`),
+          val_reserva: Sequelize.literal(`val_reserva + ${valReserve}`)
+        },
+        {
+          where: { id_gateway: id_gateway, id_seller: id_seller }
+        }
+      );
+      console.log("Campos atualizados com sucesso.");
+      return true;
+    } catch (error) {
+      console.error("Erro ao atualizar os campos:", error);
+    }
+  }
+  
+
 async function refreshSaldoGateway(id_gateway, id_seller, valor) {
     try {
 
@@ -182,4 +217,34 @@ async function refreshSaldoGateway(id_gateway, id_seller, valor) {
     }
 }
 
-module.exports = { atualizaTranzacao, getTokenSSGBank, integraPedidoRastrac, integraUserRastrac, getTokenSSGBankCard };
+async function atualizaSaldo24(params) {
+
+    const twentyFourHoursAgo = moment().subtract(24, 'hours').toDate();
+
+    const transactions = await Transactions.findAll({
+        where: {
+            payment_method: 'CARD',
+            status: 'PAID',
+            updated_balance: 0,
+            createdAt: {
+                [Op.lte]: twentyFourHoursAgo  
+            }
+        }
+    });
+
+    for (const transaction of transactions) {
+
+        const refreshSaldoResult = await refreshSaldoGateway24(
+            transaction.id_gateway,
+            transaction.id_seller,
+            transaction.amount,
+            transaction.numbersInstallments
+        );
+
+        if (refreshSaldoResult) {
+            await updateBalance(transaction.id);
+        }
+    }
+
+}
+module.exports = { atualizaTranzacao, getTokenSSGBank, integraPedidoRastrac, integraUserRastrac, getTokenSSGBankCard, atualizaSaldo24 };
