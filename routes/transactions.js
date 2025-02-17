@@ -395,6 +395,7 @@ router.post('/create-transaction', async (req, res) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept' : 'application/json',
           'Authorization': token
         },
         body: JSON.stringify(payload)
