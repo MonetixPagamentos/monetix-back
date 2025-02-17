@@ -400,7 +400,15 @@ router.post('/create-transaction', async (req, res) => {
         body: JSON.stringify(payload)
       });
 
+
       data = await response.json();
+      console.log('olha aqui');
+      console.log(tokenSSGB)
+      console.log(payload)
+      console.log('endpoint utilizado:');
+      console.log(`${process.env.URL_API_TOKEN_CARD_SSGB}api/sale`);
+      console.log(data);
+
       if (response.ok) {
 
         payment_method = 'CARD';
