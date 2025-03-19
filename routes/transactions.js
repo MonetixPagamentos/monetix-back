@@ -9,7 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const SubContaSeller = require('../db/models/subContaSeller');
 const sequelize = require('../db/connection');
 const IACortex = require('../db/models/IACortex');
-const { getTokenInfratec, integraPedidoRastrac, getTokenSSGBank, atualizaTranzacao, getTokenSSGBankCard } = require('../components/functions');
+const { getTokenSSGBank, atualizaTranzacao, getTokenSSGBankCard } = require('../components/functions');
 const ProcessamentoCortex = require('../db/models/processamento_cortex');
 const PreCharge = require('../db/models/pre_charge');
 require('dotenv').config();
@@ -1308,40 +1308,6 @@ async function refreshSaldoGateway(id_gateway, id_seller, valor, numbersInstallm
     console.error("Erro ao atualizar os campos:", error);
   }
 }
-
-async function makeCreditPayment(tokenParceiro, body) {
-  const token = 'Bearer ' + tokenParceiro;
-  try {
-    const response = await fetch(process.env.INFRATEC_API + '/api/chargers/partners/sales', {
-      method: 'POST',
-      headers: {
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip,deflate,br',
-        'Connection': 'keep-alive',
-        'Content-Type': 'application/json',
-        'Authorization': token
-      },
-      body: JSON.stringify(body)
-    });
-
-    const responseText = await response.text(); // Obtenha o texto bruto
-    try {
-      const data = JSON.parse(responseText); // Tente converter para JSON
-      if (response.ok) {
-        return data;
-      }
-      console.error('Erro na API:', data);
-      return false;
-    } catch (error) {
-      console.error('Resposta não é um JSON válido:', responseText);
-      return false;
-    }
-  } catch (error) {
-    console.error('Erro ao realizar pagamento:', error.message);
-    return false;
-  }
-}
-
 
 async function makePixPayment(tokenAstraPay, transactionId, body) {
   const token = ' Bearer ' + tokenAstraPay

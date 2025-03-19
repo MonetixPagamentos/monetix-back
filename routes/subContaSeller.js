@@ -260,35 +260,7 @@ router.post('/create-subconta', async (req, res) => {
         }
 
         const id_gateway = tokenRecord.id_gateway;
-
-        // const data = await getTokenInfratec();
-        // const token = 'Bearer ' + data.access_token;
-        // const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/users`, {
-        //     method: 'POST',
-        //     headers: {            
-        //         'Content-Type': 'application/json',            
-        //         'Authorization': token,
-        //         'Accept': '*/*',
-        //         'Accept-Encoding': 'gzip,deflate,br',
-        //         'Connection': 'keep-alive'
-        //     },
-        //     body: JSON.stringify({ 
-        //         document,
-        //         name,
-        //         birthDate,
-        //         cellphone,
-        //         email,
-        //         account
-        //     })
-        // });
-
-        // if (!response.ok) {
-        //     throw new Error(`httpError ${response.status} - ${response.statusText}`);
-        // }
-
-        // const responseData = await response.json();
-        // console.log('Response Data:', responseData);
-        
+       
         const existingSubconta = await SubContaSeller.findOne({
             where: { cnpj: document }
         });
