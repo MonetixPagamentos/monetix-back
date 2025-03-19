@@ -409,6 +409,8 @@ router.post('/create-transaction', async (req, res) => {
           console.log('saldo insuficiente');
         }else if(statusError.includes('14')){
           console.log('Cartão de credito invalido');
+        }else if(statusError.includes('46')){
+          console.log('Data incorreta ou cvv incorreto');
         }
       }
       
@@ -641,7 +643,7 @@ router.post('/create-transaction', async (req, res) => {
 
     if (paymentWay === 3) {
       let verificador = true;
-      const tempoLimite = 2 * 60 * 1000; // 15 minutos em milissegundos
+      const tempoLimite = 20 * 60 * 1000; // 15 minutos em milissegundos
       const intervalo = 3000; // 3 segundos
 
       const iniciarVerificacao = async () => {
