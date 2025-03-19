@@ -401,14 +401,17 @@ router.post('/create-transaction', async (req, res) => {
         body: JSON.stringify(payload)
       });
 
-
-      data = await response.json();
-      console.log('olha aqui');
-      console.log(tokenSSGB)
-      console.log(payload)
-      console.log('endpoint utilizado:');
-      console.log(`${process.env.URL_API_TOKEN_CARD_SSGB}api/sale`);
+      data = await response.json();      
       console.log(data);
+      if(data.message){
+        const statusError =  data.message;
+        if(statusError.includes('51')){
+          console.log('saldo insuficiente');
+        }else if(statusError.includes('14')){
+          console.log('Cartão de credito invalido');
+        }
+      }
+      
 
       if (response.ok) {
 
