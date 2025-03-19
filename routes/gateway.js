@@ -2,7 +2,9 @@ const express = require('express');
 const Gateway = require('../db/models/gateway'); // Importa o modelo Cliente
 const TaxaGateway = require('../db/models/taxaGateway');
 const Token = require('../db/models/tokens');
-const { getTokenInfratec, integraUserRastrac } = require('../components/functions');
+const { integraUserRastrac } = require('../components/functions');
+
+const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
@@ -156,41 +158,7 @@ router.post('/cadastro4', async (req, res) => {
   } = req.body;
 
   const gateway = await Gateway.findOne({where:{id:gateway_id}});
-
-  const data = await getTokenInfratec();
-  const token = 'Bearer ' + data.access_token;
-  const response = await fetch(`${process.env.INFRATEC_API}/api/charges/partners/users`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token,
-      'Accept': '*/*',
-      'Accept-Encoding': 'gzip,deflate,br',
-      'Connection': 'keep-alive'
-    },
-    body: JSON.stringify({
-      document: gateway.document_responsable,
-      name: gateway.name_responsable,
-      birthDate: gateway.birth_date,
-      cellphone: gateway.phone_responsable,
-      email: gateway.email_responsable,
-      account:{
-        Agency: agency,
-        Number: account,
-        BankCode: bank,
-        PixKey: gateway.document_gateway,
-
-      }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`httpError ${response.status} - ${response.statusText}`);
-  }
-
-  const responseData = await response.json();
-  console.log('Response Data:', responseData);
-
+  const token = uuidv4();
   try {
     const updated = await Gateway.update(
       {
@@ -199,8 +167,7 @@ router.post('/cadastro4', async (req, res) => {
         account: account,
         type_account: type_account,
         sing_up_step: 4,
-        token_id: responseData.id
-        
+        token_id: token        
       },
       {
         where: { id: gateway_id }
@@ -208,24 +175,10 @@ router.post('/cadastro4', async (req, res) => {
     );
 
     await Token.create({
-        token: responseData.id,
+        token: token,
         id_gateway: gateway.id
       });
-
-    // registra user no rastrac    
-    const data = {
-      name: name,
-      email: email,
-      password: password,
-      telefone: phone,
-      monetix: 1,
-      token_monetix: responseData.id,
-      ativo_monetix: 1 
-    };    
     
-    await integraUserRastrac(data);
-    //
-
     if (updated) {
       console.log('Update realizado com sucesso!');
       res.status(200).json({ gateway_id: gateway_id });
