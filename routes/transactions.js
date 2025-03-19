@@ -120,8 +120,8 @@ const router = express.Router();
  *                   - card
  *                 properties:
  *                   installments:
- *                     type: string
- *                     example: "1"
+ *                     type: integer
+ *                     example: 1
  *                     description: Numero de parcelas.
  *                   card:
  *                     type: object
