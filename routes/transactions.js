@@ -414,7 +414,7 @@ router.post('/create-transaction', async (req, res) => {
 
         payment_method = 'CARD';
 
-        if (data.status === 'ACCEPTED') {
+        if (data.status === 'PAID') {
           status = 'PAID'
         } else {
           status = 'ERRO'
