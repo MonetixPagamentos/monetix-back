@@ -379,7 +379,7 @@ router.post('/create-transaction', async (req, res) => {
       token = 'Bearer ' + tokenSSGB;
       console.log('entrou')
 
-      const expirationDate = ecommerce.card.expYear + '-' + ecommerce.card.expMonth;
+      const expirationDate = '20'+ecommerce.card.expYear + '-' + ecommerce.card.expMonth;
 
       const payload = {
         type: "CREDIT",
@@ -388,7 +388,7 @@ router.post('/create-transaction', async (req, res) => {
         card_security_code: ecommerce.card.cvv,
         card_expiration_date: expirationDate,
         card_holder_name: name,
-        installments: ecommerce.installments
+        installments: ''+ecommerce.installments /* pra mandar string*/
       }
 
       const response = await fetch(`${process.env.URL_API_TOKEN_CARD_SSGB}api/sale`, {
@@ -595,7 +595,7 @@ router.post('/create-transaction', async (req, res) => {
     });
 
     if (paymentWay === 5) {
-      let statusRetorno = data.status === 'ACCEPTED' ? 1 : 0;
+      let statusRetorno = data.status === 'PAID' ? 1 : 0;
 
       const retorno = {
         id: transaction.id_origin_transaction,
@@ -638,7 +638,7 @@ router.post('/create-transaction', async (req, res) => {
 
     if (paymentWay === 3) {
       let verificador = true;
-      const tempoLimite = 15 * 60 * 1000; // 15 minutos em milissegundos
+      const tempoLimite = 2 * 60 * 1000; // 15 minutos em milissegundos
       const intervalo = 3000; // 3 segundos
 
       const iniciarVerificacao = async () => {
@@ -684,6 +684,10 @@ router.post('/create-transaction', async (req, res) => {
               }
               
               atualizaTranzacao(data.id, retorno.status, reqBody);
+            }else if(retorno.status != 'PENDING'){
+              verificador = false;
+              clearInterval(intervalId);
+
             }
           } catch (error) {
             console.error("Erro ao verificar status:", error);
