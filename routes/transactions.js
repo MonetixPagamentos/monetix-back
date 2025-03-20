@@ -362,6 +362,11 @@ router.post('/create-transaction', async (req, res) => {
     if (!tokenRecord)
       return res.status(403).json({ message: "Token inexistente ou inatativo!" });
 
+    const refID = await Transactions.findOne({where:{external_id: referenceId}});
+
+    if(refID)
+      return res.status(403).json({ message: "referenceId já utilizado!" });
+
 
     const subconta = await SubContaSeller.findOne({ where: { id_seller: id_seller, id_gateway: tokenRecord.id_gateway } });
 
@@ -865,25 +870,15 @@ router.get('/transactions-gateway', async (req, res) => {
  *               items:
  *                 type: object
  *                 properties:
- *                   id:
+ *                   referenceId:
  *                     type: string
  *                     description: ID da transação.
  *                   amount:
  *                     type: number
- *                     description: Valor da transação.
- *                   cardNumber:
- *                     type: string
- *                     description: Número do cartão de crédito.
- *                   cvv:
- *                     type: string
- *                     description: Código de segurança do cartão.
+ *                     description: Valor da transação. *                  
  *                   description:
  *                     type: string
  *                     description: Uma descrição da transação.
- *                   expirationDate:
- *                     type: string
- *                     format: date
- *                     description: Data de expiração do cartão.
  *                   idOriginTransaction:
  *                     type: string
  *                     description: ID da transação de origem.
@@ -902,12 +897,9 @@ router.get('/transactions-gateway', async (req, res) => {
  *                   token_gateway:
  *                     type: string
  *                     description: Token gerado pelo gateway de pagamento.
- *                   id_gateway:
- *                     type: string
- *                     description: ID do gateway de pagamento.
- *                   postback_gateway:
- *                     type: string
- *                     description: URL de postback do gateway.
+ *                   createAt:
+ *                     type: date
+ *                     description: data de criação
  *       400:
  *         description: ID de origem da transação não fornecido.
  *       404:
@@ -924,7 +916,7 @@ router.get('/transactions-id', async (req, res) => {
 
     const transactions = await Transactions.findOne({
       where: {
-        id_origin_transaction: id_origin_transaction,
+        external_id: id_origin_transaction,
       },
     });
 
@@ -932,7 +924,20 @@ router.get('/transactions-id', async (req, res) => {
       return res.status(404).json({ message: 'Nenhuma transação encontrada' });
     }
 
-    return res.status(200).json(transactions);
+    const retorno = {    
+    referenceId: transactions.external_id,
+    amount: transactions.amount,  
+    description: transactions.description,    
+    idOriginTransaction: transactions.idOriginTransaction,
+    name: transactions.name,
+    numbersInstallments: transactions.installments,
+    typePayment: transactions.typePayment,
+    payment_method: transactions.payment_method,
+    token_gateway: transactions.token_gateway,
+    createAt: transactions.createAt
+    }
+
+    return res.status(200).json(retorno);
   } catch (error) {
     console.error('Error fetching transactions:', error);
     return res.status(500).json({ error: 'Erro ao buscar transações' });
