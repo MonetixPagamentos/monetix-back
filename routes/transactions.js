@@ -223,7 +223,7 @@ const router = express.Router();
  *                 status:
  *                   type: integer
  *                   example: 1
- *                   description: Status da transação.
+ *                   description: ( 0-RECUSADO, 1-PAGO, 2-ESTORNADO, 3-CHARGEBACK) 
  *                 error:
  *                   type: string
  *                   nullable: true
@@ -413,8 +413,7 @@ router.post('/create-transaction', async (req, res) => {
         }else if(statusError.includes('46')){
           console.log('Data incorreta ou cvv incorreto');
         }
-      }
-      
+      }      
 
       if (response.ok) {
 
@@ -597,8 +596,8 @@ router.post('/create-transaction', async (req, res) => {
     });
 
     if (paymentWay === 5) {
-      let statusRetorno = data.status === 'PAID' ? 1 : 0;
-
+      let statusRetorno = data.status === 'PAID' ? 1 : data.status === 'ESTORNED' ? 2 : data.status === 'CHARGEBACK' ? 3 : 0;
+      
       const retorno = {
         id: transaction.id_origin_transaction,
         register: transaction.created_at,
