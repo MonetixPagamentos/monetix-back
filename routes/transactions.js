@@ -599,8 +599,8 @@ router.post('/create-transaction', async (req, res) => {
       let statusRetorno = data.status === 'PAID' ? 1 : data.status === 'ESTORNED' ? 2 : data.status === 'CHARGEBACK' ? 3 : 0;
       
       const retorno = {
-        id: transaction.id_origin_transaction,
-        register: transaction.created_at,
+        id: transaction.idOriginTransaction,
+        register: transaction.updatedAt,
         id_seller: transaction.id_seller,
         buyerId: null,
         payerName: null,
