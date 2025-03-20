@@ -219,7 +219,7 @@ async function refreshSaldoGateway(id_gateway, id_seller, valor) {
 
 async function atualizaSaldo24(params) {
 
-    const twentyFourHoursAgo = moment().subtract(24, 'hours').toDate();
+    const fiftySixHoursAgo  = moment().subtract(56, 'hours').toDate();
 
     const transactions = await Transactions.findAll({
         where: {
@@ -227,7 +227,7 @@ async function atualizaSaldo24(params) {
             status: 'PAID',
             updated_balance: 0,
             createdAt: {
-                [Op.lte]: twentyFourHoursAgo  
+                [Op.lte]: fiftySixHoursAgo   
             }
         }
     });

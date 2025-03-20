@@ -35,30 +35,6 @@ router.get('/list-gateway', async (req, res) => {
     }
 });
 
-router.post('/cancel-transaction/:id_transaction', async (req, res) => {
-
-    const { id_transaction } = req.params;
-    try {
-        const tran = await Transactions.findOne({ where: { id: id_transaction } });
-
-        if (!tran) {
-            return res.status(404).json({ error: "Transaction not found" });
-        }
-
-        if (tran.payment_method === "PIX" && tran.updated_balance === 1) {
-            await cancelePaymentPix(id_transaction);
-        } else if (tran.payment_method === "CARD" && tran.updated_balance === 1) {
-            await cancelePaymentCard(id_transaction);
-        } else {
-            return res.status(400).json({ message: "Transaction cannot be canceled" });
-        }
-
-        res.status(200).json({ message: "Transaction canceled successfully" });
-    } catch (error) {
-        return res.status(500).json({ error: error.message || "Failed to cancel transaction" });
-    }
-});
-
 router.get('/list-transactions-seller/:id_seller', async (req, res) => {
     try {
         const { id_seller } = req.params;
@@ -336,78 +312,6 @@ router.get('/withdraws-all', async (req, res) => {
         return res.status(500).json({ error: 'Erro ao buscar transações' });
     }
 });
-
-// async function refundSaldoGatewayCard(id_gateway, id_seller, idTransaction, valor, numbersInstallments) {
-//     try {
-
-//       const taxaGateway = await TaxaGateway.findOne({ id_gateway: id_gateway });
-
-//       const taxa_reserva = taxaGateway.taxa_reserva;
-//       const campo = `taxa_cartao_${numbersInstallments}`;
-//       const taxa = taxaGateway[campo];
-
-//       var descTaxCard = (valor * (taxa / 100));
-//       var valReserve = (valor * (taxa_reserva / 100));
-
-//       const valDisponivel = valor - descTaxCard - valReserve - taxaGateway.taxa_transacao;
-
-//       const [rowsAffected]  =  await SaldoGateway.update(
-//         {
-//           val_disponivel: Sequelize.literal(`val_disponivel - ${valDisponivel}`),          
-//         },
-//         {
-//           where: { id_gateway: id_gateway, id_seller: id_seller }
-//         }
-//       );
-//       if (rowsAffected > 0) {
-//         await Transactions.update(
-//             { updated_balance: 2 },
-//             { where: { id: idTransaction } }
-//         );
-//     }
-//     console.log("Campos atualizados com sucesso.");
-//     return true;
-// } catch (error) {
-//     console.error("Erro ao atualizar os campos:", error);
-//     return false;
-// }
-//   }
-
-
-// async function refundSaldoGatewayPix(id_gateway, id_seller, idTransaction, valor) {
-//     try {
-
-//         const taxaGateway = await TaxaGateway.findOne({ id_gateway: id_gateway });
-
-//         const taxa_reserva = taxaGateway.taxa_reserva;
-//         const taxa = taxaGateway.taxa_pix;
-
-//         var descTaxCard = (valor * (taxa / 100));
-//         var valReserve = (valor * (taxa_reserva / 100));
-
-//         const valDisponivel = valor - descTaxCard - valReserve - taxaGateway.taxa_transacao;
-
-//         const [rowsAffected] = await SaldoGateway.update(
-//             {
-//                 val_disponivel: Sequelize.literal(`val_disponivel - ${valDisponivel}`),
-//             },
-//             {
-//                 where: { id_gateway: id_gateway, id_seller: id_seller }
-//             }
-//         );
-//         if (rowsAffected > 0) {
-//             await Transactions.update(
-//                 { updated_balance: 2 },
-//                 { where: { id: idTransaction } }
-//             );
-//         }
-//         console.log("Campos atualizados com sucesso.");
-//         return true;
-//     } catch (error) {
-//         console.error("Erro ao atualizar os campos:", error);
-//         return false;
-//     }
-// }
 
 async function refundSaldoGateway(id_gateway, id_seller, idTransaction, valor) {
     try {
