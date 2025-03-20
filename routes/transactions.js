@@ -420,7 +420,7 @@ router.post('/create-transaction', async (req, res) => {
 
         payment_method = 'CARD';
 
-        if (data.status === 'PAID') {
+        if (data.status === 'PAID' || data.status === 'ACCEPTED' ) {
           status = 'PAID'
         } else {
           status = 'ERRO'
