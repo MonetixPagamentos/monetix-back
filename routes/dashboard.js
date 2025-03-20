@@ -59,6 +59,22 @@ try {
 }
 });
 
+router.get('/cash-out-disponivel/:id_gateway', async (req, res) => {
+    const { id_gateway } = req.params;
+    try {
+        if (!id_gateway) {
+            return res.status(400).json({ error: 'id_gateway é obrigatório' });
+        }
+
+        const withdraw = await Withdraw.findAll({where:{status: 'PENDING', id_gateway: id_gateway}});
+        const existeRegistro = withdraw.length == 0;
+        return res.status(200).json(existeRegistro);
+    } catch (error) {
+        console.error('Error fetching client:', error);
+        return res.status(500).json({ error: 'Erro ao buscar cliente' });
+    }
+});
+
 
 router.get('/cash-out/:id_gateway', async (req, res) => {
     const { id_gateway } = req.params;
