@@ -38,6 +38,7 @@ const Transactions = sequelize.define('transactions', {
     status: { type: DataTypes.STRING, allowNull: true }, // Status da transação
     link_origem: { type: DataTypes.TEXT, allowNull: true },
     updated_balance: { type: DataTypes.INTEGER, defaultValue: 0 },
+    msg_erro: { type: DataTypes.STRING, allowNull: true },
 
     // pix  
     txid: { type: DataTypes.TEXT, allowNull: true, comment: 'Unique PIX billing identifier' }
