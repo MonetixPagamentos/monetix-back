@@ -417,7 +417,11 @@ router.post('/create-transaction', async (req, res) => {
           console.log('Cartão de credito invalido');
         } else if (statusError.includes('46')) {
           console.log('Data incorreta ou cvv incorreto');
-        }
+        }else if (statusError.includes('54')) {
+          console.log('Cartão Expirado');
+        }else if (statusError.includes('03')) {
+          console.log('Invalid merchant');
+        }        
       }
 
       if (response.ok) {
@@ -503,9 +507,7 @@ router.post('/create-transaction', async (req, res) => {
           typePayment = 'PARCELADO'
         } else {
           typePayment = 'A_VISTA'
-        }
-
-        const data = await response.json();
+        }       
 
         transaction = await Transactions.create({
           amount: amount,
