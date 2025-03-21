@@ -362,9 +362,9 @@ router.post('/create-transaction', async (req, res) => {
     if (!tokenRecord)
       return res.status(403).json({ message: "Token inexistente ou inatativo!" });
 
-    const refID = await Transactions.findOne({where:{external_id: referenceId}});
+    const refID = await Transactions.findOne({ where: { external_id: referenceId } });
 
-    if(refID)
+    if (refID)
       return res.status(403).json({ message: "referenceId já utilizado!" });
 
 
@@ -385,7 +385,7 @@ router.post('/create-transaction', async (req, res) => {
       console.log('entrou')
 
       const expMonth = ecommerce.card.expMonth.toString().padStart(2, '0');
-      const expirationDate = '20'+ecommerce.card.expYear + '-' + expMonth;
+      const expirationDate = '20' + ecommerce.card.expYear + '-' + expMonth;
 
       const payload = {
         type: "CREDIT",
@@ -394,37 +394,37 @@ router.post('/create-transaction', async (req, res) => {
         card_security_code: ecommerce.card.cvv,
         card_expiration_date: expirationDate,
         card_holder_name: name,
-        installments: ''+ecommerce.installments /* pra mandar string*/
+        installments: '' + ecommerce.installments /* pra mandar string*/
       }
 
       const response = await fetch(`${process.env.URL_API_TOKEN_CARD_SSGB}api/sale`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept' : 'application/json',
+          'Accept': 'application/json',
           'Authorization': token
         },
         body: JSON.stringify(payload)
       });
 
-      data = await response.json();      
+      data = await response.json();
       console.log(data);
-      if(data.message){
-        const statusError =  data.message;
-        if(statusError.includes('51')){
+      if (data.message) {
+        const statusError = data.message;
+        if (statusError.includes('51')) {
           console.log('saldo insuficiente');
-        }else if(statusError.includes('14')){
+        } else if (statusError.includes('14')) {
           console.log('Cartão de credito invalido');
-        }else if(statusError.includes('46')){
+        } else if (statusError.includes('46')) {
           console.log('Data incorreta ou cvv incorreto');
         }
-      }      
+      }
 
       if (response.ok) {
 
         payment_method = 'CARD';
 
-        if (data.status === 'PAID' || data.status === 'ACCEPTED' ) {
+        if (data.status === 'PAID' || data.status === 'ACCEPTED') {
           status = 'PAID'
         } else {
           status = 'ERRO'
@@ -470,7 +470,7 @@ router.post('/create-transaction', async (req, res) => {
         });
 
         if (transaction && status === 'PAID') {
-       
+
           var produtoCortex = '';
           await itens.forEach((item) => {
             if (produtoCortex === '') {
@@ -602,7 +602,7 @@ router.post('/create-transaction', async (req, res) => {
 
     if (paymentWay === 5) {
       let statusRetorno = data.status === 'PAID' ? 1 : data.status === 'ESTORNED' ? 2 : data.status === 'CHARGEBACK' ? 3 : 0;
-      
+
       const retorno = {
         id: transaction.idOriginTransaction,
         register: transaction.updatedAt,
@@ -636,7 +636,7 @@ router.post('/create-transaction', async (req, res) => {
       }
 
       res.status(201).json(retorno);
-    }else{      
+    } else {
       res.status(201).json(data);
     }
 
@@ -688,9 +688,9 @@ router.post('/create-transaction', async (req, res) => {
                   status: 0
                 }
               }
-              
+
               atualizaTranzacao(data.id, retorno.status, reqBody);
-            }else if(retorno.status != 'PENDING'){
+            } else if (retorno.status != 'PENDING') {
               verificador = false;
               clearInterval(intervalId);
 
@@ -924,17 +924,17 @@ router.get('/transactions-id', async (req, res) => {
       return res.status(404).json({ message: 'Nenhuma transação encontrada' });
     }
 
-    const retorno = {    
-    referenceId: transactions.external_id,
-    amount: transactions.amount,  
-    description: transactions.description,    
-    idOriginTransaction: transactions.idOriginTransaction,
-    name: transactions.name,
-    numbersInstallments: transactions.installments,
-    typePayment: transactions.typePayment,
-    payment_method: transactions.payment_method,
-    token_gateway: transactions.token_gateway,
-    createAt: transactions.createAt
+    const retorno = {
+      referenceId: transactions.external_id,
+      amount: transactions.amount,
+      description: transactions.description,
+      idOriginTransaction: transactions.idOriginTransaction,
+      name: transactions.name,
+      numbersInstallments: transactions.installments,
+      typePayment: transactions.typePayment,
+      payment_method: transactions.payment_method,
+      token_gateway: transactions.token_gateway,
+      createAt: transactions.createAt
     }
 
     return res.status(200).json(retorno);
@@ -1129,5 +1129,161 @@ async function avaliableCortex(idTransaction, idSeller) {
     console.log(`Error in avaliableCortex: ${error.message}`, error);
   }
 }
+
+/**
+ * @swagger
+ * /transactions/transaction-cancel/{referenceId}:
+ *   put:
+ *     summary: Cancela uma transação
+ *     description: Este endpoint permite cancelar uma transação específica utilizando o ID da transação, Requer um token de autenticação Bearer.
+ *     tags:
+ *       - Transaction
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: referenceId
+ *         required: true
+ *         description: O ID da transação a ser cancelada.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Transação cancelada com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Indica se a operação foi bem-sucedida.
+ *                 message:
+ *                   type: string
+ *                   description: Mensagem de retorno.
+ *                 data:
+ *                   type: object
+ *                   description: Dados adicionais sobre a transação cancelada.
+ *       400:
+ *         description: ID da transação não fornecido ou inválido.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Detalhes do erro.
+ *       401:
+ *         description: Não autorizado - Token inválido ou ausente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Token de autenticação ausente ou inválido.
+ *       403:
+ *         description: Proibido - Token inexistente ou inativo.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Detalhes do motivo da proibição.
+ *       500:
+ *         description: Erro interno do servidor.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Detalhes do erro.
+ */
+
+router.put('/transaction-cancel/:referenceId', async (req, res) => {
+  const referenceId = req.params.referenceId;
+
+  if (!referenceId) {
+    return res.status(400).json({ error: 'id_transaction is required' });
+  }
+
+  const transaction = await Transactions.findOne({ where: { external_id: referenceId } });
+
+  if (!transaction) {
+    return res.status(404).json({ error: 'Transaction not found' });
+   }
+
+  // const authHeader = req.headers['authorization'];
+  // if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  //   return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+  // }
+
+  // const tokenBearer = authHeader.split(' ')[1];
+
+  // const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+
+  // if (!tokenRecord) {
+  //   return res.status(403).json({ message: "Token inexistente ou inativo!" });
+  // }
+
+  const tokenSSGB = await getTokenSSGBankCard();
+  const token = 'Bearer ' + tokenSSGB;
+  const body = { email: transaction.email };
+  const url = `${process.env.URL_API_TOKEN_CARD_SSGB}api/sale/refund/${transaction.idOriginTransaction}`;
+  try {
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": token
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    // Verifica se a resposta indica que a venda foi reembolsada ou cancelada
+    if (
+      data.status === "REFUNDED" ||
+      data.status === "CANCELLED" ||
+      (data.message && /REFUNDED|CANCELLED/.test(data.message))
+    ) {
+      await Transactions.update(
+        { status: "CANCELED" },
+        { where: { external_id: referenceId } }
+      );
+
+      if (transaction.updateBalance === 1) {
+        await SaldoGateway.update(
+          {
+            val_disponivel: Sequelize.literal(`val_disponivel - ${transaction.amount}`)
+          },
+          {
+            where: { id_gateway: transaction.id_gateway, id_seller: transaction.id_seller }
+          }
+        );
+      }
+
+      const retorno = {
+        referenceId: transaction.external_id,
+        status: 2
+      }
+
+      return res.status(200).json(retorno);
+    } else {
+      return res.status(403).json({ message: 'Falha ao cancelar a transação!' });
+    }
+
+  } catch (err) {
+    console.error('Error cancelling transaction:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 module.exports = router;
