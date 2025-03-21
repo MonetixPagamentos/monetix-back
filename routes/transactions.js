@@ -408,9 +408,10 @@ router.post('/create-transaction', async (req, res) => {
       });
 
       data = await response.json();
+      let statusError;
       console.log(data);
       if (data.message) {
-        const statusError = data.message;
+         statusError = data.message;
         if (statusError.includes('51')) {
           console.log('saldo insuficiente');
         } else if (statusError.includes('14')) {
@@ -534,7 +535,8 @@ router.post('/create-transaction', async (req, res) => {
           country,
           integridade: 5,
           phone,
-          document: payerDocument
+          document: payerDocument,
+          msg_erro: statusError
         });
 
         await itens.forEach((item) => {
