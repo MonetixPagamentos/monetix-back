@@ -1219,18 +1219,18 @@ router.put('/transaction-cancel/:referenceId', async (req, res) => {
     return res.status(404).json({ error: 'Transaction not found' });
    }
 
-  // const authHeader = req.headers['authorization'];
-  // if (!authHeader || !authHeader.startsWith('Bearer ')) {
-  //   return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
-  // }
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: "Token de autenticação ausente ou inválido" });
+  }
 
-  // const tokenBearer = authHeader.split(' ')[1];
+  const tokenBearer = authHeader.split(' ')[1];
 
-  // const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
+  const tokenRecord = await Token.findOne({ where: { token: tokenBearer, ativo: 1 } });
 
-  // if (!tokenRecord) {
-  //   return res.status(403).json({ message: "Token inexistente ou inativo!" });
-  // }
+  if (!tokenRecord) {
+    return res.status(403).json({ message: "Token inexistente ou inativo!" });
+  }
 
   const tokenSSGB = await getTokenSSGBankCard();
   const token = 'Bearer ' + tokenSSGB;
