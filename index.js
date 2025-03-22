@@ -151,7 +151,7 @@ initDb().then(() => {
      atualizaSaldo24()
    };
 
-   cron.schedule('0 0 * * *', func, {
+   cron.schedule('0 0 * * 1-5', func, {
     timezone: 'America/Sao_Paulo'
   });
   
